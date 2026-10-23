@@ -1,0 +1,19 @@
+Package: ros-desktop-base
+Version: @VERSION@
+Section: metapackages
+Priority: optional
+Architecture: all
+Depends: ros-branding (= @VERSION@), ros-agent (= @VERSION@),
+ gnome-core, gdm3, gnome-control-center, gnome-tweaks, dconf-cli,
+ gnome-shell-extension-dashtodock, gnome-shell-extension-appindicator,
+ fonts-inter, fonts-noto-core, network-manager-gnome
+Recommends: firefox-esr, libreoffice-writer, libreoffice-calc, libreoffice-impress,
+ cups, system-config-printer, simple-scan, flatpak
+Maintainer: ROS Project <yvesm189@users.noreply.github.com>
+Homepage: https://github.com/yvesm189/ros
+Description: ROS desktop (metapackage)
+ Pulls in everything that makes a Debian system a ROS workstation: the GNOME
+ desktop, the ROS identity and default policy, and the management agent.
+ .
+ Installing this package on an existing Debian 13 system is the supported way
+ to try ROS without building an image.

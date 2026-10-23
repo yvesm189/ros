@@ -1,0 +1,5 @@
+ros-desktop-base is a metapackage. It contains no files of its own; it exists
+so that "a ROS workstation" is a single thing a machine can install, upgrade
+and be audited against.
+
+See https://github.com/yvesm189/ros for documentation.
