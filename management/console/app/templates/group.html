@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% set active = 'groups' %}
+{% block title %}{{ group.name }} - ROS Console{% endblock %}
+{% block content %}
+<p class="muted" style="margin:0 0 6px"><a href="/groups">&larr; Policies</a></p>
+<h1>{{ group.name }}</h1>
+<p class="lede">
+    Revision {{ group.revision }} &middot; {{ device_count }} device{{ '' if device_count == 1 else 's' }}.
+    Saving publishes a new revision; machines pick it up on their next sync.
+</p>
+
+<form method="post" action="/groups/{{ group.id }}">
+<div class="grid two">
+
+    <div class="card">
+        <h2 style="margin-top:0">Appearance</h2>
+
+        <div class="field">
+            <label for="description">Description</label>
+            <input type="text" id="description" name="description" value="{{ group.description }}">
+        </div>
+
+        <div class="field">
+            <label for="color_scheme">Colour scheme</label>
+            <select id="color_scheme" name="color_scheme">
+                {% for value in color_schemes %}
+                    <option value="{{ value }}" {{ 'selected' if settings.color_scheme == value }}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="accent_color">Accent colour</label>
+            <select id="accent_color" name="accent_color">
+                {% for value in accent_colors %}
+                    <option value="{{ value }}" {{ 'selected' if settings.accent_color == value }}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="font_name">Interface font</label>
+            <input type="text" id="font_name" name="font_name" value="{{ settings.font_name }}">
+        </div>
+
+        <div class="field">
+            <label for="wallpaper_light">Wallpaper (light)</label>
+            <input type="text" id="wallpaper_light" name="wallpaper_light" value="{{ settings.wallpaper_light }}">
+        </div>
+
+        <div class="field">
+            <label for="wallpaper_dark">Wallpaper (dark)</label>
+            <input type="text" id="wallpaper_dark" name="wallpaper_dark" value="{{ settings.wallpaper_dark }}">
+        </div>
+
+        <div class="field">
+            <label for="clock_format">Clock</label>
+            <select id="clock_format" name="clock_format">
+                <option value="24h" {{ 'selected' if settings.clock_format == '24h' }}>24 hour</option>
+                <option value="12h" {{ 'selected' if settings.clock_format == '12h' }}>12 hour</option>
+            </select>
+        </div>
+
+        <div class="checkline">
+            <input type="checkbox" id="show_battery_percentage" name="show_battery_percentage"
+                   {{ 'checked' if settings.show_battery_percentage }}>
+            <label for="show_battery_percentage">Show battery percentage</label>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0">Dock and shell</h2>
+
+        <div class="field">
+            <label for="dock_position">Dock position</label>
+            <select id="dock_position" name="dock_position">
+                {% for value in dock_positions %}
+                    <option value="{{ value }}" {{ 'selected' if settings.dock_position == value }}>{{ value|lower }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="dock_icon_size">Dock icon size (16-128)</label>
+            <input type="number" id="dock_icon_size" name="dock_icon_size" min="16" max="128"
+                   value="{{ settings.dock_icon_size }}">
+        </div>
+
+        <div class="checkline">
+            <input type="checkbox" id="dock_fixed" name="dock_fixed" {{ 'checked' if settings.dock_fixed }}>
+            <label for="dock_fixed">Always visible (never auto-hide)</label>
+        </div>
+
+        <div class="field">
+            <label for="favorites">Pinned applications, one .desktop id per line</label>
+            <textarea id="favorites" name="favorites" rows="6">{{ settings.favorites|join('\n') }}</textarea>
+        </div>
+
+        <div class="field">
+            <label for="extensions">Enabled shell extensions, one UUID per line</label>
+            <textarea id="extensions" name="extensions" rows="4">{{ settings.extensions|join('\n') }}</textarea>
+        </div>
+
+        <h2>Session</h2>
+        <div class="checkline">
+            <input type="checkbox" id="lock_enabled" name="lock_enabled" {{ 'checked' if settings.lock_enabled }}>
+            <label for="lock_enabled">Lock the screen when it blanks</label>
+        </div>
+        <div class="field">
+            <label for="idle_delay">Blank the screen after (seconds, 0 disables)</label>
+            <input type="number" id="idle_delay" name="idle_delay" min="0" value="{{ settings.idle_delay }}">
+        </div>
+    </div>
+</div>
+
+<h2>Advanced</h2>
+<div class="grid two">
+    <div class="card">
+        <div class="field" style="margin-bottom:0">
+            <label for="locks">Locked keys, one dconf path per line</label>
+            <textarea id="locks" name="locks" rows="8">{{ locks }}</textarea>
+            <p class="muted" style="font-size:13px">
+                A locked key cannot be changed by the person using the machine.
+                Lock sparingly: each one is a support call waiting to happen.
+            </p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="field" style="margin-bottom:0">
+            <label for="extra_dconf">Extra dconf, as JSON of {"section": {"key": "GVariant"}}</label>
+            <textarea id="extra_dconf" name="extra_dconf" rows="8">{{ extra_dconf }}</textarea>
+            <p class="muted" style="font-size:13px">
+                Anything the form above does not cover. Values are GVariant text,
+                so strings need their own quotes: <code>"'prefer-dark'"</code>.
+                These override the form.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="actions">
+    <button class="btn">Save and publish revision {{ group.revision + 1 }}</button>
+    <a class="btn ghost" href="/groups">Cancel</a>
+</div>
+</form>
+
+<h2>What machines in this group will receive</h2>
+<p class="muted" style="margin-top:-6px;font-size:14px">
+    This is the exact file ros-agent writes to
+    <code>/etc/dconf/db/ros.d/50-managed</code>, as of the saved revision.
+</p>
+<pre class="keyfile">{{ keyfile }}</pre>
+{% endblock %}

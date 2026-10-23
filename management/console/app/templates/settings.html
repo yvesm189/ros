@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% set active = 'settings' %}
+{% block content %}
+<h1>Settings</h1>
+<p class="lede">Console version {{ version }}.</p>
+
+<h2>Enrollment</h2>
+<div class="card">
+    <p style="margin-top:0">A workstation joins this console by presenting the enrollment key once.
+       It receives its own token in return and never uses the key again.</p>
+    <p><span class="key">{{ enrollment_key }}</span></p>
+    <pre class="keyfile">sudo ros-agent enroll --server {{ server_url }} --key {{ enrollment_key }}</pre>
+    <p class="muted" style="font-size:13px">Or write it into <code>/etc/ros/agent.conf</code> on the image, so machines enroll on first boot.</p>
+    <form method="post" action="/settings/rotate-key"
+          onsubmit="return confirm('Rotate the key? Already-enrolled devices keep working; new enrollments must use the new key.')">
+        <button class="btn ghost small">Rotate key</button>
+    </form>
+</div>
+
+<h2>Administrator access</h2>
+<div class="card">
+    <p style="margin-top:0" class="muted">
+        The console password comes from the <code>ROS_ADMIN_PASSWORD</code> environment variable.
+        Change it in <code>management/docker-compose.yml</code> or the service environment and restart.
+    </p>
+</div>
+{% endblock %}

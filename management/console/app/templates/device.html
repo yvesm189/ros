@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% set active = 'devices' %}
+{% block title %}{{ device.hostname }} - ROS Console{% endblock %}
+{% block content %}
+<p class="muted" style="margin:0 0 6px"><a href="/devices">&larr; Devices</a></p>
+<h1>{{ device.hostname }}</h1>
+<p class="lede">
+    Last seen {{ device.seen_label }} &middot; policy
+    {% if device.policy_status == 'failed' %}<span class="pill failed">failed</span>
+    {% else %}<span class="pill sync">revision {{ device.policy_revision }}</span>{% endif %}
+</p>
+
+<div class="grid two">
+    <div class="card">
+        <h2 style="margin-top:0">Hardware and system</h2>
+        <dl class="kv">
+            <dt>Device ID</dt><dd class="mono">{{ device.id }}</dd>
+            <dt>Machine ID</dt><dd class="mono">{{ device.machine_id[:16] }}…</dd>
+            <dt>Operating system</dt><dd>{{ device.inventory.os_pretty or 'unknown' }}</dd>
+            <dt>Kernel</dt><dd class="mono">{{ device.inventory.kernel or '-' }}</dd>
+            <dt>Architecture</dt><dd>{{ device.inventory.arch or '-' }}</dd>
+            <dt>CPU</dt><dd>{{ device.inventory.cpu_model or '-' }} ({{ device.inventory.cpu_count or '?' }} threads)</dd>
+            <dt>Memory</dt><dd>{{ device.inventory.memory_mb or 0 }} MB</dd>
+            <dt>Disk</dt><dd>
+                {{ device.inventory.disk.free_gb if device.inventory.disk else '?' }} GB free of
+                {{ device.inventory.disk.total_gb if device.inventory.disk else '?' }} GB</dd>
+            <dt>Address</dt><dd class="mono">{{ device.inventory.ip_address or '-' }}</dd>
+            <dt>Desktop</dt><dd>{{ device.inventory.desktop or '-' }}</dd>
+            <dt>Agent</dt><dd>{{ device.agent_version or '-' }}</dd>
+        </dl>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0">Assigned policy</h2>
+        <form method="post" action="/devices/{{ device.id }}/group">
+            <div class="field">
+                <label for="group_id">Policy group</label>
+                <select id="group_id" name="group_id">
+                    {% for g in groups %}
+                        <option value="{{ g.id }}" {{ 'selected' if group and g.id == group.id }}>
+                            {{ g.name }} (revision {{ g.revision }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn">Assign</button>
+        </form>
+        <p class="muted" style="font-size:13px;margin-top:14px">
+            The change reaches this machine on its next sync, within 15 minutes.
+        </p>
+
+        <h2>Danger zone</h2>
+        <form method="post" action="/devices/{{ device.id }}/delete"
+              onsubmit="return confirm('Remove {{ device.hostname }} from the console? The machine keeps its current policy until it re-enrolls.')">
+            <button class="btn danger small">Remove device</button>
+        </form>
+    </div>
+</div>
+
+<h2>Policy this device will apply</h2>
+<pre class="keyfile">{{ keyfile }}</pre>
+
+<h2>History</h2>
+<div class="card" style="padding:0">
+    <table>
+        <tbody>
+        {% for e in events %}
+            <tr>
+                <td class="nowrap muted" style="width:120px">{{ e.when }}</td>
+                <td class="nowrap muted" style="width:90px">{{ e.kind }}</td>
+                <td>{{ e.message }}</td>
+            </tr>
+        {% else %}
+            <tr><td class="empty">No history for this device yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

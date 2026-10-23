@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set active = 'devices' %}
+{% block content %}
+<h1>Devices</h1>
+<p class="lede">Every workstation that has enrolled with this console.</p>
+<div class="card" style="padding:0">
+    <table>
+        <thead>
+        <tr>
+            <th>Hostname</th><th>Policy</th><th>Revision</th><th>OS</th>
+            <th>Agent</th><th>Address</th><th>Last seen</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for d in devices %}
+            <tr>
+                <td><a href="/devices/{{ d.id }}">{{ d.hostname }}</a></td>
+                <td>{{ d.group_name or 'unassigned' }}</td>
+                <td>
+                    {% if d.policy_status == 'failed' %}<span class="pill failed">failed</span>
+                    {% elif d.in_sync %}<span class="pill sync">r{{ d.policy_revision }}</span>
+                    {% else %}<span class="pill drift">r{{ d.policy_revision }} &rarr; r{{ d.group_revision }}</span>{% endif %}
+                </td>
+                <td class="muted">{{ d.inventory.os_pretty or '-' }}</td>
+                <td class="muted">{{ d.agent_version or '-' }}</td>
+                <td class="muted mono">{{ d.inventory.ip_address or '-' }}</td>
+                <td class="nowrap"><span class="pill {{ 'online' if d.online else 'offline' }}">{{ d.seen_label }}</span></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="7" class="empty">No devices have enrolled yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

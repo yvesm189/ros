@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}ROS Console{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' rx='58' fill='%230a79c7'/><g fill='none' stroke-linecap='round' stroke-linejoin='round' stroke-width='20'><path d='M62 184 L128 118 L194 184' stroke='%23fff'/><path d='M62 128 L128 62 L194 128' stroke='%23f7c948'/></g></svg>">
+</head>
+<body>
+{% if show_nav|default(true) %}
+<header class="topbar">
+    <span class="brand">
+        <svg width="22" height="22" viewBox="0 0 256 256" aria-hidden="true">
+            <rect width="256" height="256" rx="58" fill="#0a79c7"/>
+            <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="20">
+                <path d="M62 184 L128 118 L194 184" stroke="#fff"/>
+                <path d="M62 128 L128 62 L194 128" stroke="#f7c948"/>
+            </g>
+        </svg>
+        ROS CONSOLE
+    </span>
+    <nav class="main">
+        <a href="/" class="{{ 'active' if active == 'dashboard' }}">Overview</a>
+        <a href="/devices" class="{{ 'active' if active == 'devices' }}">Devices</a>
+        <a href="/groups" class="{{ 'active' if active == 'groups' }}">Policies</a>
+        <a href="/events" class="{{ 'active' if active == 'events' }}">Activity</a>
+        <a href="/settings" class="{{ 'active' if active == 'settings' }}">Settings</a>
+    </nav>
+    <span class="spacer"></span>
+    <a href="/logout" class="muted" style="font-size:14px">Sign out</a>
+</header>
+{% endif %}
+<main>
+{% if default_password_in_use and show_nav|default(true) %}
+<div class="banner">
+    This console is still using the default administrator password. Set
+    <code>ROS_ADMIN_PASSWORD</code> before putting it on a network.
+</div>
+{% endif %}
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

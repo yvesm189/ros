@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% set show_nav = false %}
+{% block title %}Sign in - ROS Console{% endblock %}
+{% block content %}
+<div class="login-wrap">
+    <div style="text-align:center;margin-bottom:26px">
+        <svg width="56" height="56" viewBox="0 0 256 256">
+            <rect width="256" height="256" rx="58" fill="#0a79c7"/>
+            <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="20">
+                <path d="M62 184 L128 118 L194 184" stroke="#fff"/>
+                <path d="M62 128 L128 62 L194 128" stroke="#f7c948"/>
+            </g>
+        </svg>
+        <h1 style="margin-top:14px">ROS Console</h1>
+        <p class="lede" style="margin-bottom:0">Fleet management for ROS workstations</p>
+    </div>
+    <div class="card">
+        <form method="post" action="/login">
+            <div class="field">
+                <label for="password">Administrator password</label>
+                <input type="password" id="password" name="password" autofocus required>
+            </div>
+            {% if error %}<p style="color:var(--bad);font-size:14px">{{ error }}</p>{% endif %}
+            <button class="btn" style="width:100%">Sign in</button>
+        </form>
+    </div>
+    {% if default_password_in_use %}
+    <p class="muted" style="text-align:center;font-size:13px;margin-top:16px">
+        Default password is <code>ros-admin</code>.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

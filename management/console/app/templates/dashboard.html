@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% set active = 'dashboard' %}
+{% block content %}
+<h1>Overview</h1>
+<p class="lede">{{ stats.total }} enrolled workstation{{ '' if stats.total == 1 else 's' }}.</p>
+
+<div class="grid stats">
+    <div class="card stat"><div class="label">Devices</div><div class="value">{{ stats.total }}</div></div>
+    <div class="card stat"><div class="label">Seen recently</div><div class="value good">{{ stats.online }}</div></div>
+    <div class="card stat"><div class="label">Policy in sync</div>
+        <div class="value {{ 'good' if stats.in_sync == stats.total else 'warn' }}">{{ stats.in_sync }}</div></div>
+    <div class="card stat"><div class="label">Policies</div><div class="value">{{ stats.groups }}</div></div>
+</div>
+
+{% if stats.total == 0 %}
+<h2>Enroll your first workstation</h2>
+<div class="card">
+    <p class="muted" style="margin-top:0">Run this on a ROS machine, then wait for the agent timer or run <code>ros-agent sync</code>:</p>
+    <pre class="keyfile">sudo ros-agent enroll \
+    --server {{ request.base_url|string|trim('/') }} \
+    --key {{ enrollment_key }}
+sudo ros-agent sync</pre>
+</div>
+{% else %}
+<h2>Recently seen</h2>
+<div class="card" style="padding:0">
+    <table>
+        <thead><tr><th>Hostname</th><th>Policy</th><th>Revision</th><th>Last seen</th></tr></thead>
+        <tbody>
+        {% for d in devices %}
+            <tr>
+                <td><a href="/devices/{{ d.id }}">{{ d.hostname }}</a></td>
+                <td>{{ d.group_name or 'unassigned' }}</td>
+                <td>
+                    {% if d.policy_status == 'failed' %}<span class="pill failed">failed</span>
+                    {% elif d.in_sync %}<span class="pill sync">r{{ d.policy_revision }}</span>
+                    {% else %}<span class="pill drift">r{{ d.policy_revision }} &rarr; r{{ d.group_revision }}</span>{% endif %}
+                </td>
+                <td class="nowrap">
+                    <span class="pill {{ 'online' if d.online else 'offline' }}">{{ d.seen_label }}</span>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<h2>Activity</h2>
+<div class="card" style="padding:0">
+    <table>
+        <tbody>
+        {% for e in events %}
+            <tr>
+                <td class="nowrap muted" style="width:120px">{{ e.when }}</td>
+                <td class="nowrap muted" style="width:90px">{{ e.kind }}</td>
+                <td>{{ e.message }}</td>
+            </tr>
+        {% else %}
+            <tr><td class="empty">Nothing has happened yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

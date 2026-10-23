@@ -1,0 +1,23 @@
+# ROS Console, for local development and small deployments.
+#
+# For anything beyond a lab, put a TLS-terminating reverse proxy in front of
+# this: the agent sends its bearer token on every request.
+services:
+  console:
+    build: ./console
+    image: ros-console:0.1.0
+    container_name: ros-console
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Change this before the console is reachable by anything but localhost.
+      ROS_ADMIN_PASSWORD: "ros-admin"
+      # Leave unset to have a random enrollment key generated on first start.
+      # ROS_ENROLLMENT_KEY: ""
+      ROS_DB_PATH: "/data/ros.db"
+    volumes:
+      - console-data:/data
+
+volumes:
+  console-data:

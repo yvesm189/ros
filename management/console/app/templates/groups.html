@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% set active = 'groups' %}
+{% block content %}
+<h1>Policies</h1>
+<p class="lede">A policy group is a desktop configuration plus the machines it applies to.</p>
+
+<div class="card" style="padding:0;margin-bottom:24px">
+    <table>
+        <thead><tr><th>Name</th><th>Description</th><th>Devices</th><th>Revision</th><th></th></tr></thead>
+        <tbody>
+        {% for g in groups %}
+            <tr>
+                <td><a href="/groups/{{ g.id }}">{{ g.name }}</a>
+                    {% if g.is_default %}<span class="pill sync" style="margin-left:6px">default</span>{% endif %}</td>
+                <td class="muted">{{ g.description }}</td>
+                <td>{{ g.device_count }}</td>
+                <td class="mono">r{{ g.revision }}</td>
+                <td class="right">
+                    {% if not g.is_default %}
+                    <form method="post" action="/groups/{{ g.id }}/delete" style="display:inline"
+                          onsubmit="return confirm('Delete {{ g.name }}? Its devices fall back to the default policy.')">
+                        <button class="btn danger small">Delete</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2>New policy group</h2>
+<div class="card">
+    <form method="post" action="/groups">
+        <div class="grid two">
+            <div class="field">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" placeholder="Finance department" required>
+            </div>
+            <div class="field">
+                <label for="description">Description</label>
+                <input type="text" id="description" name="description" placeholder="What this group is for">
+            </div>
+        </div>
+        <button class="btn">Create</button>
+    </form>
+</div>
+{% endblock %}

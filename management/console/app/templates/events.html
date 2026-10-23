@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% set active = 'events' %}
+{% block content %}
+<h1>Activity</h1>
+<p class="lede">Enrollments, policy applications and security events, newest first.</p>
+<div class="card" style="padding:0">
+    <table>
+        <thead><tr><th style="width:130px">When</th><th style="width:100px">Kind</th><th>Message</th><th style="width:140px">Device</th></tr></thead>
+        <tbody>
+        {% for e in events %}
+            <tr>
+                <td class="nowrap muted">{{ e.when }}</td>
+                <td class="muted">{{ e.kind }}</td>
+                <td>{{ e.message }}</td>
+                <td class="mono muted">
+                    {% if e.device_id %}<a href="/devices/{{ e.device_id }}">{{ e.device_id[:8] }}</a>{% else %}-{% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="4" class="empty">No activity recorded yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
