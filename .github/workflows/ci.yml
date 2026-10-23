@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lint
+        run: make lint
+
+      - name: Unit tests
+        run: make test
+
+  packages:
+    name: Build and install packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build .deb packages
+        run: ./scripts/build-debs.sh
+
+      - name: Install them on a clean Debian 13 and verify the policy applies
+        run: |
+          docker run --rm -v "$PWD:/ros" -w /ros debian:trixie-slim \
+            bash /ros/tests/container-check.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ros-packages
+          path: out/packages/*.deb
+          retention-days: 14
+
+  console:
+    name: Console image and API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the console image
+        run: docker build -t ros-console:ci management/console
+
+      - name: Start it and exercise the device API
+        run: |
+          docker run -d --name console -p 8000:8000 \
+            -e ROS_ADMIN_PASSWORD=ci-password \
+            -e ROS_ENROLLMENT_KEY=ci-enrollment-key \
+            ros-console:ci
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/api/v1/health >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/api/v1/health
+
+          enrolled=$(curl -fsS -X POST http://127.0.0.1:8000/api/v1/enroll \
+            -H 'Content-Type: application/json' \
+            -d '{"enrollment_key":"ci-enrollment-key","machine_id":"ci-machine","hostname":"ci-host","inventory":{}}')
+          device=$(echo "$enrolled" | python3 -c 'import json,sys; print(json.load(sys.stdin)["device_id"])')
+          token=$(echo "$enrolled"  | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
+
+          curl -fsS -X POST "http://127.0.0.1:8000/api/v1/devices/$device/heartbeat" \
+            -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+            -d '{"inventory":{"hostname":"ci-host"},"agent_version":"ci","policy_revision":0}'
+          curl -fsS "http://127.0.0.1:8000/api/v1/devices/$device/policy" \
+            -H "Authorization: Bearer $token" | head -c 200
+          echo
+
+          # An unauthenticated caller must not be able to read policy.
+          code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8000/api/v1/devices/$device/policy")
+          test "$code" = "401"
+          echo "device API verified"
+
+      - name: Console logs
+        if: always()
+        run: docker logs console || true

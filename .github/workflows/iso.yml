@@ -1,0 +1,66 @@
+name: ISO
+
+# ISO builds are slow and large, so they run on a tag or on request rather
+# than on every push.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: Target architecture
+        type: choice
+        options: [amd64, arm64]
+        default: amd64
+
+jobs:
+  build:
+    name: Build ${{ github.event.inputs.arch || 'amd64' }} ISO
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reclaim runner disk space
+        run: |
+          # A GNOME live image plus its chroot needs more room than a stock
+          # runner has free.
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /usr/local/share/boost "$AGENT_TOOLSDIRECTORY"
+          df -h /
+
+      - name: Enable binfmt for cross-architecture builds
+        if: github.event.inputs.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build
+        env:
+          ARCH: ${{ github.event.inputs.arch || 'amd64' }}
+        run: ./scripts/build-iso.sh
+
+      - name: Summarise
+        run: |
+          ls -lh out/*.iso
+          cat out/*.iso.sha256
+          {
+            echo "### ROS ISO"
+            echo '```'
+            cat out/*.iso.sha256
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ros-iso-${{ github.event.inputs.arch || 'amd64' }}
+          path: |
+            out/*.iso
+            out/*.iso.sha256
+          retention-days: 7
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/*.iso
+            out/*.iso.sha256
