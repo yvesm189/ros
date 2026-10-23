@@ -1,0 +1,15 @@
+#!/bin/sh
+# Generate the locales ROS ships with. Kinyarwanda (rw_RW) is the reason this
+# hook exists: it is in glibc but no Debian task installs it by default.
+set -e
+
+cat > /etc/locale.gen <<'LOCALES'
+en_US.UTF-8 UTF-8
+en_RW.UTF-8 UTF-8
+fr_RW.UTF-8 UTF-8
+fr_FR.UTF-8 UTF-8
+rw_RW.UTF-8 UTF-8
+LOCALES
+
+locale-gen
+update-locale LANG=en_US.UTF-8 LC_TIME=en_RW.UTF-8 LC_MONETARY=en_RW.UTF-8

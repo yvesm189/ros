@@ -1,0 +1,13 @@
+# Enterprise integration. Not used by the stock image out of the box, but these
+# are what a managed deployment joins a directory and encrypts its disk with.
+# Drop this list for a smaller "personal" image.
+realmd
+sssd
+sssd-tools
+adcli
+packagekit
+cryptsetup
+clevis
+clevis-luks
+clevis-systemd
+chrony

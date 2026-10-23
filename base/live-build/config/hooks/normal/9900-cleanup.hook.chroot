@@ -1,0 +1,17 @@
+#!/bin/sh
+# Trim the image. Keep this last.
+set -e
+
+apt-get --yes autoremove --purge
+apt-get --yes clean
+
+rm -rf /var/lib/apt/lists/*
+rm -rf /usr/share/doc/*/changelog.Debian.gz
+rm -rf /tmp/* /var/tmp/*
+rm -f /var/cache/fontconfig/*
+find /var/log -type f -exec truncate -s 0 {} \; 2>/dev/null || true
+
+# Never ship host entropy or machine identity in an image.
+: > /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+ln -sf /etc/machine-id /var/lib/dbus/machine-id

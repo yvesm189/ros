@@ -1,0 +1,8 @@
+#!/bin/sh
+# Make the ROS boot splash the default and bake it into the initramfs.
+set -e
+
+if [ -d /usr/share/plymouth/themes/ros ]; then
+    plymouth-set-default-theme ros || true
+    update-initramfs -u || true
+fi

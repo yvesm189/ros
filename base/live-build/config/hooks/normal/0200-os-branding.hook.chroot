@@ -1,0 +1,47 @@
+#!/bin/sh
+# Replace Debian's identity strings with ROS's.
+# /usr/lib/os-release is the real file on Debian; /etc/os-release is a symlink
+# to it, so that is what we rewrite.
+set -e
+
+# Hooks run inside the chroot, so the build environment is not visible here.
+# scripts/build-iso.sh writes the release stamp into the image beforehand
+# (config/includes.chroot/etc/ros/release) and we read it back.
+VERSION="0.1.0"
+CODENAME="inzira"
+[ -r /etc/ros/release ] && . /etc/ros/release
+VERSION="${ROS_VERSION:-$VERSION}"
+CODENAME="${ROS_CODENAME:-$CODENAME}"
+
+cat > /usr/lib/os-release <<OSRELEASE
+PRETTY_NAME="ROS ${VERSION} (${CODENAME})"
+NAME="ROS"
+VERSION_ID="${VERSION}"
+VERSION="${VERSION} (${CODENAME})"
+VERSION_CODENAME=${CODENAME}
+ID=ros
+ID_LIKE="debian"
+HOME_URL="https://github.com/yvesm189/ros"
+SUPPORT_URL="https://github.com/yvesm189/ros/issues"
+BUG_REPORT_URL="https://github.com/yvesm189/ros/issues"
+LOGO=ros-logo
+OSRELEASE
+
+ln -sf ../usr/lib/os-release /etc/os-release
+
+cat > /etc/issue <<ISSUE
+ROS ${VERSION} \\n \\l
+
+ISSUE
+
+cat > /etc/issue.net <<ISSUENET
+ROS ${VERSION}
+ISSUENET
+
+# GNOME "About" reads lsb-release too.
+cat > /etc/lsb-release <<LSB
+DISTRIB_ID=ROS
+DISTRIB_RELEASE=${VERSION}
+DISTRIB_CODENAME=${CODENAME}
+DISTRIB_DESCRIPTION="ROS ${VERSION} (${CODENAME})"
+LSB

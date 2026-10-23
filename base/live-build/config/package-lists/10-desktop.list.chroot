@@ -1,0 +1,14 @@
+# Core GNOME desktop.
+# We deliberately depend on the `gnome-core` metapackage rather than pinning the
+# individual apps: Debian moves apps in and out of the default GNOME set between
+# releases (gnome-console, loupe, papers...), and gnome-core always resolves to
+# the set that actually matches the shell version in this suite.
+gnome-core
+gdm3
+gnome-control-center
+gnome-tweaks
+gnome-system-monitor
+gnome-disk-utility
+gnome-software
+gnome-software-plugin-flatpak
+flatpak

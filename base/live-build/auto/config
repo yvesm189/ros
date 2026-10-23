@@ -1,0 +1,42 @@
+#!/bin/sh
+# live-build configuration for ROS.
+# Invoked automatically by `lb config`. Tunables come from the environment so
+# that scripts/build-iso.sh is the only place that decides what we build.
+set -e
+
+ARCH="${ROS_ARCH:-amd64}"
+SUITE="${ROS_SUITE:-trixie}"
+VERSION="${ROS_VERSION:-dev}"
+MIRROR="${ROS_MIRROR:-http://deb.debian.org/debian/}"
+
+# syslinux only exists on x86; everything else boots via GRUB/EFI.
+case "${ARCH}" in
+    amd64|i386) BOOTLOADERS="syslinux,grub-efi" ;;
+    *)          BOOTLOADERS="grub-efi" ;;
+esac
+
+lb config noauto \
+    --mode debian \
+    --distribution "${SUITE}" \
+    --architectures "${ARCH}" \
+    --archive-areas "main contrib non-free-firmware" \
+    --mirror-bootstrap "${MIRROR}" \
+    --mirror-chroot "${MIRROR}" \
+    --mirror-binary "${MIRROR}" \
+    --bootloaders "${BOOTLOADERS}" \
+    --debian-installer live \
+    --debian-installer-gui true \
+    --firmware-chroot true \
+    --firmware-binary true \
+    --apt-recommends true \
+    --apt-indices false \
+    --updates true \
+    --security true \
+    --backports false \
+    --memtest none \
+    --iso-application "ROS" \
+    --iso-publisher "ROS Project; https://github.com/yvesm189/ros" \
+    --iso-volume "ROS ${VERSION}" \
+    --image-name "ros-${VERSION}-${ARCH}" \
+    --bootappend-live "boot=live components quiet splash username=ros user-fullname=ROS\\ Live hostname=ros-live locales=en_US.UTF-8 keyboard-layouts=us" \
+    "${@}"

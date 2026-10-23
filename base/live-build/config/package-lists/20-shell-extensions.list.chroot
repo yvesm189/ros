@@ -1,0 +1,5 @@
+# Shell extensions used by the ROS desktop layout.
+# dash-to-dock gives migrating Windows users a persistent taskbar;
+# appindicator keeps legacy tray icons working.
+gnome-shell-extension-dashtodock
+gnome-shell-extension-appindicator

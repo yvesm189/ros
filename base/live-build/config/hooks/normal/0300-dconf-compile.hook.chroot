@@ -1,0 +1,15 @@
+#!/bin/sh
+# Compile the system dconf databases shipped by ros-branding.
+# Without this the keyfiles under /etc/dconf/db/*.d are inert.
+set -e
+
+if [ -d /etc/dconf/db ]; then
+    dconf update
+    echo "ROS: compiled dconf databases:"
+    ls -1 /etc/dconf/db/ | grep -v '\.d$' || true
+fi
+
+# Recompile GSettings schemas in case a package dropped an override in late.
+if [ -d /usr/share/glib-2.0/schemas ]; then
+    glib-compile-schemas /usr/share/glib-2.0/schemas
+fi

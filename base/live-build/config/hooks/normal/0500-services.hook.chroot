@@ -1,0 +1,13 @@
+#!/bin/sh
+# Service posture for a managed workstation.
+set -e
+
+systemctl enable gdm3 2>/dev/null || true
+systemctl enable chrony 2>/dev/null || true
+
+# The management agent is installed but idle until it is given a server URL.
+# ros-agent.timer is a no-op while /etc/ros/agent.conf has no server set.
+systemctl enable ros-agent.timer 2>/dev/null || true
+
+# Nothing in a desktop image should be listening for inbound connections.
+systemctl disable cups-browsed 2>/dev/null || true
