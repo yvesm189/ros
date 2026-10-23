@@ -1,0 +1,18 @@
+# Wallpaper and lock screen.
+[org/gnome/desktop/background]
+picture-uri='file:///usr/share/backgrounds/ros/ros-light.svg'
+picture-uri-dark='file:///usr/share/backgrounds/ros/ros-dark.svg'
+picture-options='zoom'
+primary-color='#06243A'
+secondary-color='#0A79C7'
+
+[org/gnome/desktop/screensaver]
+picture-uri='file:///usr/share/backgrounds/ros/ros-dark.svg'
+picture-options='zoom'
+primary-color='#06243A'
+lock-enabled=true
+lock-delay=uint32 0
+idle-activation-enabled=true
+
+[org/gnome/desktop/session]
+idle-delay=uint32 600

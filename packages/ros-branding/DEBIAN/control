@@ -1,0 +1,16 @@
+Package: ros-branding
+Version: @VERSION@
+Section: misc
+Priority: optional
+Architecture: all
+Depends: dconf-cli, dconf-gsettings-backend, librsvg2-common
+Recommends: fonts-inter, plymouth, gnome-shell-extension-dashtodock, gnome-shell-extension-appindicator
+Maintainer: ROS Project <yvesm189@users.noreply.github.com>
+Homepage: https://github.com/yvesm189/ros
+Description: ROS desktop identity and default policy
+ Wallpapers, logo, boot splash, GTK accent colours and the system dconf
+ database that gives a ROS workstation its look and its default settings.
+ .
+ Defaults live in /etc/dconf/db/ros.d and the small set of settings a user may
+ not change lives in /etc/dconf/db/ros.d/locks. A site can layer its own
+ keyfiles into /etc/dconf/db/local.d without editing anything shipped here.

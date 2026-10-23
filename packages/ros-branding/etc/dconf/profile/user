@@ -1,0 +1,7 @@
+# ROS dconf profile.
+# Read order matters: the user's own database wins for anything that is not
+# locked, `ros` carries the ROS defaults, and `local` is left free for a site
+# administrator to layer on top without editing ROS files.
+user-db:user
+system-db:local
+system-db:ros

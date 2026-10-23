@@ -1,0 +1,12 @@
+# Keys users may not override.
+# Keep this list short on purpose: every lock here is a help-desk call waiting
+# to happen, so only settings with a security or identity reason are frozen.
+/org/gnome/desktop/background/picture-uri
+/org/gnome/desktop/background/picture-uri-dark
+/org/gnome/desktop/screensaver/lock-enabled
+/org/gnome/desktop/screensaver/lock-delay
+/org/gnome/desktop/privacy/report-technical-problems
+/org/gnome/desktop/privacy/send-software-usage-stats
+/org/gnome/system/location/enabled
+/org/gnome/software/allow-updates
+/org/gnome/software/download-updates

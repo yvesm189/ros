@@ -1,0 +1,29 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Compile the dconf databases; keyfiles are inert until this runs.
+        if command -v dconf >/dev/null 2>&1; then
+            dconf update || true
+        fi
+
+        # The boot splash needs a raster logo. Generate it from the SVG rather
+        # than keeping a PNG in version control.
+        THEME=/usr/share/plymouth/themes/ros
+        if [ -d "$THEME" ] && command -v rsvg-convert >/dev/null 2>&1; then
+            rsvg-convert -w 320 -h 320 /usr/share/pixmaps/ros-logo.svg \
+                -o "$THEME/logo.png" || true
+        fi
+
+        if command -v plymouth-set-default-theme >/dev/null 2>&1 \
+           && [ -f "$THEME/ros.plymouth" ] && [ -f "$THEME/logo.png" ]; then
+            plymouth-set-default-theme ros || true
+            if [ -d /run/systemd/system ]; then
+                update-initramfs -u || true
+            fi
+        fi
+        ;;
+esac
+
+exit 0

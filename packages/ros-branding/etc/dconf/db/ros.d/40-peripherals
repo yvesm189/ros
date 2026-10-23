@@ -1,0 +1,17 @@
+[org/gnome/desktop/peripherals/touchpad]
+tap-to-click=true
+natural-scroll=false
+two-finger-scrolling-enabled=true
+
+[org/gnome/desktop/input-sources]
+sources=[('xkb', 'us'), ('xkb', 'fr')]
+xkb-options=['grp:alt_shift_toggle']
+
+[org/gnome/nautilus/preferences]
+default-folder-viewer='icon-view'
+show-delete-permanently=false
+
+[org/gnome/settings-daemon/plugins/power]
+sleep-inactive-ac-type='nothing'
+sleep-inactive-battery-timeout=1800
+power-button-action='interactive'

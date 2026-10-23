@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width="220" height="56" role="img" aria-label="ROS">
+  <title>ROS</title>
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="6">
+    <path d="M8 42 L30 20 L52 42"/>
+    <path d="M8 24 L30 2 L52 24" opacity="0.55"/>
+  </g>
+  <text x="70" y="40" font-family="Inter, Cantarell, sans-serif" font-size="34"
+        font-weight="700" letter-spacing="4" fill="#FFFFFF">ROS</text>
+</svg>

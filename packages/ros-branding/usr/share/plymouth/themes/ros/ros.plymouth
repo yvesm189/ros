@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=ROS
+Description=ROS boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/ros
+ScriptFile=/usr/share/plymouth/themes/ros/ros.script

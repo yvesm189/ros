@@ -1,0 +1,15 @@
+# Privacy and update posture for a managed machine.
+[org/gnome/desktop/privacy]
+report-technical-problems=false
+send-software-usage-stats=false
+remember-recent-files=true
+recent-files-max-age=30
+
+[org/gnome/system/location]
+enabled=false
+
+[org/gnome/software]
+# Updates are delivered by the fleet, not by whoever is logged in.
+download-updates=false
+allow-updates=false
+first-run=false

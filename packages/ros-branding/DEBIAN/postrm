@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ] || [ "$1" = "remove" ]; then
+    rm -f /usr/share/plymouth/themes/ros/logo.png
+    if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+        plymouth-set-default-theme --reset || true
+    fi
+    command -v dconf >/dev/null 2>&1 && dconf update || true
+fi
+
+exit 0

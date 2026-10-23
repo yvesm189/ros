@@ -1,0 +1,10 @@
+# Site-local desktop settings.
+#
+# This file exists so that the `local` database named in /etc/dconf/profile/user
+# always compiles - dconf warns on every read if a profile references a database
+# that has never been built.
+#
+# ROS does not ship anything here. Add your own keyfiles beside this one for
+# settings that belong to this installation and should survive a ROS upgrade;
+# they take precedence over the ROS defaults and are themselves overridden by
+# anything the management console pushes.

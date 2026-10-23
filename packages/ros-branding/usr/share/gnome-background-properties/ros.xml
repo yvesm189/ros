@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>ROS</name>
+    <filename>/usr/share/backgrounds/ros/ros-light.svg</filename>
+    <filename-dark>/usr/share/backgrounds/ros/ros-dark.svg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#06243A</pcolor>
+    <scolor>#0A79C7</scolor>
+  </wallpaper>
+</wallpapers>

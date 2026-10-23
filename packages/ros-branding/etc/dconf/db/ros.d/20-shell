@@ -1,0 +1,19 @@
+# Shell layout: a bottom dock and working tray icons.
+[org/gnome/shell]
+disable-user-extensions=false
+enabled-extensions=['dash-to-dock@micxgx.gmail.com', 'appindicatorsupport@rgcjonas.gmail.com']
+favorite-apps=['firefox-esr.desktop', 'org.gnome.Nautilus.desktop', 'libreoffice-writer.desktop', 'libreoffice-calc.desktop', 'org.gnome.Settings.desktop', 'org.gnome.Console.desktop']
+
+[org/gnome/shell/extensions/dash-to-dock]
+dock-position='BOTTOM'
+dock-fixed=false
+extend-height=false
+intellihide=true
+transparency-mode='DYNAMIC'
+custom-theme-shrink=true
+show-trash=false
+show-mounts=false
+click-action='minimize-or-previews'
+scroll-action='cycle-windows'
+dash-max-icon-size=40
+running-indicator-style='DOTS'

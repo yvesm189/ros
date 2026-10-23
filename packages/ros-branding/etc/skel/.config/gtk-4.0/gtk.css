@@ -1,0 +1,6 @@
+/* ROS accent colours for GTK4 / libadwaita applications.
+ * GNOME's own accent-color setting only accepts a fixed set of names, so the
+ * exact brand blue is applied here instead. */
+@define-color accent_bg_color #0A79C7;
+@define-color accent_fg_color #ffffff;
+@define-color accent_color #2A93DD;

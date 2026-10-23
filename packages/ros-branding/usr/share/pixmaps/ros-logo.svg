@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="ROS">
+  <title>ROS</title>
+  <defs>
+    <linearGradient id="badge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A79C7"/>
+      <stop offset="1" stop-color="#06243A"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="58" fill="url(#badge)"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="20">
+    <path d="M62 190 L128 124 L194 190" stroke="#06243A" opacity="0.35"/>
+    <path d="M62 184 L128 118 L194 184" stroke="#FFFFFF"/>
+    <path d="M62 128 L128 62 L194 128" stroke="#F7C948"/>
+  </g>
+</svg>

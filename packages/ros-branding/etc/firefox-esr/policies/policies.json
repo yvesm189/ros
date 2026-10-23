@@ -1,0 +1,29 @@
+{
+  "policies": {
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisablePocket": true,
+    "DisableFirefoxAccounts": false,
+    "DontCheckDefaultBrowser": true,
+    "OfferToSaveLoginsDefault": false,
+    "EnableTrackingProtection": {
+      "Value": true,
+      "Locked": false,
+      "Cryptomining": true,
+      "Fingerprinting": true
+    },
+    "FirefoxHome": {
+      "Pocket": false,
+      "Snippets": false,
+      "SponsoredTopSites": false
+    },
+    "Homepage": {
+      "URL": "https://github.com/yvesm189/ros",
+      "StartPage": "homepage",
+      "Locked": false
+    },
+    "PDFjs": {
+      "Enabled": true
+    }
+  }
+}

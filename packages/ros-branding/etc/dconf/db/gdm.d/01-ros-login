@@ -1,0 +1,13 @@
+[org/gnome/login-screen]
+logo='/usr/share/pixmaps/ros-logo-symbolic.svg'
+banner-message-enable=true
+banner-message-text='ROS managed workstation. Authorised users only.'
+disable-user-list=false
+disable-restart-buttons=false
+
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+accent-color='blue'
+font-name='Inter 11'
+clock-format='24h'
+clock-show-weekday=true
