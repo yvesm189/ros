@@ -1,6 +1,38 @@
-/* ROS accent colours for GTK4 / libadwaita applications.
- * GNOME's own accent-color setting only accepts a fixed set of names, so the
- * exact brand blue is applied here instead. */
+/* ROS interface styling for GTK4 / libadwaita applications.
+ *
+ * libadwaita ignores the gtk-theme setting entirely - a themed Adwaita is not
+ * a supported thing - but it does load the user's gtk.css at startup. That is
+ * why this ships into the user's config rather than as a theme, and why an
+ * application has to be restarted to pick up a change.
+ */
+
+/* ------------------------------------------------------------- accent ---- */
 @define-color accent_bg_color #0A79C7;
 @define-color accent_fg_color #ffffff;
 @define-color accent_color #2A93DD;
+
+/* ----------------------------------------------------- window controls ---- */
+/* GNOME's own window controls, kept as they are - minimise, maximise, close,
+ * on the right. The only change is geometric: an equal minimum width and
+ * height with no padding of its own makes each button a true circle, so the
+ * glyph sits dead centre in it rather than a pixel or two off.
+ *
+ * The selector is `windowcontrols > button`, not `.titlebutton`: GTK4's
+ * GtkWindowControls does not carry that class, which GTK3 headerbars did, and
+ * a .titlebutton rule here silently matches nothing.
+ */
+
+windowcontrols > button {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    margin: 0 3px;
+}
+
+/* halign/valign are widget properties, not CSS: GTK logs a parser error and
+   skips the whole declaration. Centring comes from the button being square
+   with no padding, which is what the rule above does. */
+windowcontrols > button > image {
+    margin: 0;
+    padding: 0;
+}

@@ -16,6 +16,25 @@ case "$1" in
                 -o "$THEME/logo.png" || true
         fi
 
+        # /etc/skel only reaches users created after this package is
+        # installed. Existing users get the stylesheet too, but only where ROS
+        # wrote it before or where there is nothing to overwrite - a gtk.css
+        # somebody edited themselves is theirs to keep.
+        for home in /home/*; do
+            [ -d "${home}" ] || continue
+            owner="$(stat -c %U "${home}" 2>/dev/null)" || continue
+            for version in 3.0 4.0; do
+                skel="/etc/skel/.config/gtk-${version}/gtk.css"
+                target="${home}/.config/gtk-${version}/gtk.css"
+                [ -f "${skel}" ] || continue
+                if [ -f "${target}" ] && ! grep -q "ROS interface styling" "${target}"; then
+                    continue
+                fi
+                install -d -o "${owner}" -g "${owner}" "$(dirname "${target}")"
+                install -m 0644 -o "${owner}" -g "${owner}" "${skel}" "${target}"
+            done
+        done
+
         if command -v plymouth-set-default-theme >/dev/null 2>&1 \
            && [ -f "$THEME/ros.plymouth" ] && [ -f "$THEME/logo.png" ]; then
             plymouth-set-default-theme ros || true

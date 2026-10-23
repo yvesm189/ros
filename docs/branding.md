@@ -189,6 +189,28 @@ GDM's *background image* is not settable this way — it comes from the shell
 theme. ROS leaves it alone rather than shipping a gresource fork that breaks on
 the next GNOME release.
 
+## Window controls
+
+ROS keeps GNOME's own window controls — minimise, maximise, close, on the
+right. `etc/skel/.config/gtk-{3,4}.0/gtk.css` makes one geometric change: an
+equal minimum width and height with no padding of its own, so each button is a
+true circle and its glyph sits dead centre.
+
+The GTK4 selector is `windowcontrols > button`, **not** `.titlebutton`.
+GtkWindowControls does not carry that class — GTK3 headerbars did — so a
+`.titlebutton` rule in a GTK4 stylesheet silently matches nothing. The
+per-button classes `.minimize`, `.maximize` and `.close` do exist.
+
+Two limits worth knowing:
+
+- libadwaita loads the user stylesheet **at startup**, so an application has to
+  be restarted to pick up a change. `/etc/skel` only reaches users created after
+  `ros-branding` is installed; its `postinst` copies the file to existing users
+  too, but only where ROS wrote it before or where there is nothing to
+  overwrite.
+- Windows drawn by the shell rather than by the application — server-side
+  decorations — are the shell theme's business and are not covered here.
+
 ## The dock
 
 ROS enables `dash-to-dock` and configures it in `20-shell`. The defaults are
