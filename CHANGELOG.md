@@ -5,6 +5,27 @@ before 1.0 the minor number carries breaking changes.
 
 ## Unreleased
 
+### Added
+
+- **An application catalogue and a store.** The console publishes a catalogue
+  of ROS applications built on open source upstreams - Urubuga (browser),
+  Inyandiko, Imibare and Imurika (documents, spreadsheets, slides), Umusomyi
+  (PDF) and the rest - and a policy group hands a machine the ones it should
+  have. `ros-agent` installs what is missing on its next sync and never removes
+  anything, because uninstalling software somebody is using is not a decision
+  for a timer.
+- **Isoko, the ROS Store** (`ros-store`): a GTK4 application that browses the
+  catalogue and installs from it. It runs as the person at the keyboard and
+  shells out through `pkexec` to the agent, which accepts a catalogue slug and
+  never a package name - so the authorisation cannot become "install anything".
+- **`ros-app-defaults`**: the configuration that makes catalogue applications
+  behave like part of ROS - the brand font inside documents and web pages,
+  telemetry off, no first-run prompts. Inert until the application it
+  configures is installed.
+- **A login screen in the desktop preview.** It now boots LightDM with a
+  ROS-themed greeter and a real GNOME session behind it, instead of dropping
+  straight into a shell nobody logged into.
+
 ### Changed
 
 - **The system font is now Funnel Display**, matching the RHost console at
@@ -19,6 +40,8 @@ before 1.0 the minor number carries breaking changes.
 - **The desktop preview serves plain VNC on :5900** instead of noVNC over HTTP.
   Xvnc replaces the Xvfb/x11vnc/websockify stack, so there is one process
   instead of three, and any VNC client can connect.
+- Window controls keep GNOME's appearance - minimise, maximise, close on the
+  right - with one geometric fix so each glyph sits centred in its circle.
 - The brand typefaces live once, in `branding/fonts/`. The package build and
   the console build both stage them from there rather than keeping copies.
 

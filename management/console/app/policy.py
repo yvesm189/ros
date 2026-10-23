@@ -9,7 +9,7 @@ not cover can still be expressed as raw dconf in `extra_dconf`.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # GNOME only accepts these accent names; an arbitrary hex value is not valid
 # for org.gnome.desktop.interface accent-color.
@@ -33,6 +33,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     # ROS ships no third-party browser or office suite; the ROS applications
     # that replace them get pinned here as they land.
     "favorites": [
+        "rw.ros.Store.desktop",
         "org.gnome.Nautilus.desktop",
         "org.gnome.TextEditor.desktop",
         "org.gnome.Console.desktop",
@@ -46,6 +47,11 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "idle_delay": 600,
 }
 
+# Applications a group gets by default. Empty: a stock ROS workstation ships
+# the GNOME system tools and nothing else, and what else arrives is a decision
+# somebody makes in the console rather than something an image assumed.
+DEFAULT_APPLICATIONS: List[str] = []
+
 DEFAULT_LOCKS: List[str] = [
     "/org/gnome/desktop/background/picture-uri",
     "/org/gnome/desktop/background/picture-uri-dark",
@@ -58,6 +64,7 @@ def default_policy() -> Dict[str, Any]:
         "settings": dict(DEFAULT_SETTINGS),
         "extra_dconf": {},
         "locks": list(DEFAULT_LOCKS),
+        "applications": list(DEFAULT_APPLICATIONS),
     }
 
 
@@ -131,12 +138,24 @@ def compile_dconf(policy: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
     return dconf
 
 
-def compile_policy(name: str, revision: int, policy: Dict[str, Any]) -> Dict[str, Any]:
+def compile_policy(
+    name: str,
+    revision: int,
+    policy: Dict[str, Any],
+    applications: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """Compile a stored policy into what the agent applies.
+
+    `applications` is the resolved catalogue entries for the slugs this policy
+    selects - resolved by the console, because the agent has no catalogue of
+    its own and should not need one.
+    """
     return {
         "name": name,
         "revision": revision,
         "dconf": compile_dconf(policy),
         "locks": policy.get("locks") or [],
+        "applications": applications or [],
     }
 
 
@@ -172,6 +191,13 @@ def policy_from_form(form: Dict[str, Any]) -> Dict[str, Any]:
     except (TypeError, ValueError):
         idle_delay = DEFAULT_SETTINGS["idle_delay"]
 
+    # Checkboxes named application:<slug>; absent means not selected.
+    applications = sorted(
+        key.split(":", 1)[1]
+        for key in form
+        if key.startswith("application:") and form.get(key)
+    )
+
     extra_raw = str(form.get("extra_dconf", "")).strip()
     try:
         extra = json.loads(extra_raw) if extra_raw else {}
@@ -203,7 +229,19 @@ def policy_from_form(form: Dict[str, Any]) -> Dict[str, Any]:
         },
         "extra_dconf": extra,
         "locks": _lines(str(form.get("locks", ""))),
+        "applications": applications,
     }
+
+
+def application_summary(compiled: Dict[str, Any]) -> str:
+    """One line per application, as the agent will act on it."""
+    apps = compiled.get("applications") or []
+    if not apps:
+        return "# No applications are assigned to this policy."
+    return "\n".join(
+        "%-14s %-6s %s" % (app["name"], app["source"], app["reference"])
+        for app in apps
+    )
 
 
 def keyfile_preview(compiled: Dict[str, Any]) -> str:

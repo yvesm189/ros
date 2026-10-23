@@ -74,6 +74,32 @@ echo ">> the lock is in place"
 grep -q "/org/gnome/desktop/interface/color-scheme" /etc/dconf/db/ros.d/locks/50-managed
 echo "   locked"
 
+echo ">> the store and the application defaults are in place"
+test -x /usr/bin/ros-store
+test -f /usr/share/applications/rw.ros.Store.desktop
+test -f /usr/share/polkit-1/actions/rw.ros.store.policy
+test -f /usr/lib/firefox-esr/ros.cfg
+test -f /usr/lib/libreoffice/share/registry/ros.xcd
+echo "   ros-store, its polkit action and the application defaults"
+
+echo ">> the store is pinned to the dock"
+favourites="$(DCONF_PROFILE=user dconf read /org/gnome/shell/favorite-apps)"
+case "${favourites}" in
+    *rw.ros.Store.desktop*) echo "   Isoko is pinned" ;;
+    *) echo "the ROS Store is not pinned: ${favourites}" >&2; exit 1 ;;
+esac
+
+echo ">> the agent understands application policy"
+python3 -c "
+import sys
+sys.path.insert(0, '/usr/lib/ros-agent')
+import agent
+assert hasattr(agent, 'apply_applications'), 'agent cannot apply applications'
+assert agent.is_installed({'source': 'apt', 'reference': 'dpkg'}), 'dpkg should be installed'
+assert not agent.is_installed({'source': 'apt', 'reference': 'no-such-package'})
+print('   install detection works')
+"
+
 echo ">> agent reports its state"
 ros-agent status >/dev/null
 echo

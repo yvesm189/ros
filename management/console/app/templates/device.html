@@ -60,6 +60,22 @@
 <h2>Policy this device will apply</h2>
 <pre class="keyfile">{{ keyfile }}</pre>
 
+<h2>Applications this device should have</h2>
+<div class="card" style="padding:0">
+    <table>
+        <tbody>
+        {% for app in applications %}
+            <tr>
+                <td><strong>{{ app.name }}</strong></td>
+                <td class="muted mono">{{ app.source }}:{{ app.reference }}</td>
+            </tr>
+        {% else %}
+            <tr><td class="empty">No applications are assigned to this device's policy.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
 <h2>History</h2>
 <div class="card" style="padding:0">
     <table>

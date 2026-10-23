@@ -41,6 +41,23 @@ CREATE TABLE IF NOT EXISTS devices (
     inventory       TEXT NOT NULL DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS applications (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug        TEXT NOT NULL UNIQUE,
+    name        TEXT NOT NULL,
+    tagline     TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    category    TEXT NOT NULL DEFAULT 'Other',
+    upstream    TEXT NOT NULL DEFAULT '',
+    source      TEXT NOT NULL DEFAULT 'apt',
+    reference   TEXT NOT NULL DEFAULT '',
+    desktop_id  TEXT NOT NULL DEFAULT '',
+    icon        TEXT NOT NULL DEFAULT 'application-x-executable-symbolic',
+    published   INTEGER NOT NULL DEFAULT 1,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS events (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     device_id TEXT,
@@ -60,6 +77,7 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_applications_slug ON applications(slug);
 CREATE INDEX IF NOT EXISTS idx_devices_group ON devices(group_id);
 """
 
@@ -72,7 +90,7 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
-def init_db(default_policy: Dict[str, Any]) -> None:
+def init_db(default_policy: Dict[str, Any], catalogue: Optional[List[Dict[str, Any]]] = None) -> None:
     os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
     with connect() as conn:
         conn.executescript(SCHEMA)
@@ -90,6 +108,29 @@ def init_db(default_policy: Dict[str, Any]) -> None:
                     now,
                 ),
             )
+
+        # The catalogue is seeded once. After that it belongs to whoever runs
+        # the console: an upgrade must not undo an edit or resurrect something
+        # that was deliberately removed.
+        if catalogue and not conn.execute(
+            "SELECT COUNT(*) AS n FROM applications"
+        ).fetchone()["n"]:
+            now = int(time.time())
+            for app in catalogue:
+                conn.execute(
+                    "INSERT INTO applications (slug, name, tagline, description,"
+                    " category, upstream, source, reference, desktop_id, icon,"
+                    " published, created_at, updated_at)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
+                    (
+                        app["slug"], app["name"], app.get("tagline", ""),
+                        app.get("description", ""), app.get("category", "Other"),
+                        app.get("upstream", ""), app.get("source", "apt"),
+                        app.get("reference", ""), app.get("desktop_id", ""),
+                        app.get("icon", "application-x-executable-symbolic"),
+                        now, now,
+                    ),
+                )
 
 
 # --------------------------------------------------------------------------- #

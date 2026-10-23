@@ -113,6 +113,32 @@
     </div>
 </div>
 
+<h2>Applications</h2>
+<p class="muted" style="margin-top:-6px;font-size:14px">
+    Machines in this group install these. Removing one here does not uninstall
+    it from machines that already have it - that is a separate decision, and a
+    destructive one.
+</p>
+<div class="card">
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+        {% for app in applications %}
+        <div class="checkline" style="align-items:flex-start">
+            <input type="checkbox" id="app-{{ app.slug }}" name="application:{{ app.slug }}"
+                   {{ 'checked' if app.selected }}>
+            <label for="app-{{ app.slug }}">
+                {{ app.name }}
+                <span class="muted" style="font-size:13px">— {{ app.tagline }}</span>
+                <div class="muted" style="font-size:12px">{{ app.category }} · {{ app.upstream }}</div>
+            </label>
+        </div>
+        {% else %}
+        <p class="muted" style="margin:0">
+            The catalogue is empty. <a href="/applications">Add an application</a>.
+        </p>
+        {% endfor %}
+    </div>
+</div>
+
 <h2>Advanced</h2>
 <div class="grid two">
     <div class="card">
@@ -150,4 +176,7 @@
     <code>/etc/dconf/db/ros.d/50-managed</code>, as of the saved revision.
 </p>
 <pre class="keyfile">{{ keyfile }}</pre>
+
+<h2>Applications it will install</h2>
+<pre class="keyfile">{{ application_summary }}</pre>
 {% endblock %}

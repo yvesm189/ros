@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% set active = 'applications' %}
+{% block title %}Applications - ROS Console{% endblock %}
+{% block content %}
+<h1>Applications</h1>
+<p class="lede">
+    The ROS application catalogue. These are what the ROS Store offers on a
+    workstation, and what a policy group can install.
+</p>
+
+<div class="card" style="padding:0;margin-bottom:24px">
+    <table>
+        <thead>
+        <tr><th>Application</th><th>Category</th><th>Built on</th><th>Installs</th><th>In policies</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for app in applications %}
+            <tr>
+                <td>
+                    <strong>{{ app.name }}</strong>
+                    <span class="muted">— {{ app.tagline }}</span>
+                    {% if not app.published %}<span class="pill drift" style="margin-left:6px">hidden</span>{% endif %}
+                    <div class="muted mono" style="font-size:12px">{{ app.slug }}</div>
+                </td>
+                <td class="muted">{{ app.category }}</td>
+                <td class="muted">{{ app.upstream or '—' }}</td>
+                <td class="mono muted">{{ app.source }}:{{ app.reference }}</td>
+                <td>{{ app.group_count }}</td>
+                <td class="right nowrap">
+                    <a class="btn ghost small" href="#edit-{{ app.id }}">Edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="6" class="empty">The catalogue is empty.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2>Add an application</h2>
+<div class="card">
+    <form method="post" action="/applications">
+        {% include "_application_fields.html" %}
+        <div class="actions"><button class="btn">Add to catalogue</button></div>
+    </form>
+</div>
+
+{% for app in applications %}
+<h2 id="edit-{{ app.id }}">{{ app.name }}</h2>
+<div class="card">
+    <form method="post" action="/applications/{{ app.id }}">
+        {% set entry = app %}
+        {% include "_application_fields.html" %}
+        <div class="checkline" style="margin-top:14px">
+            <input type="checkbox" id="published-{{ app.id }}" name="published"
+                   {{ 'checked' if app.published }}>
+            <label for="published-{{ app.id }}">Show in the ROS Store</label>
+        </div>
+        <div class="actions"><button class="btn">Save</button></div>
+    </form>
+    <form method="post" action="/applications/{{ app.id }}/delete" style="margin-top:10px"
+          onsubmit="return confirm('Remove {{ app.name }} from the catalogue? Policies that install it will stop doing so.')">
+        <button class="btn danger small">Remove from catalogue</button>
+    </form>
+</div>
+{% endfor %}
+{% endblock %}

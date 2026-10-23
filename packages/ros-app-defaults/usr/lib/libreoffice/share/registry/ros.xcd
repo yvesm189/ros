@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ROS defaults for LibreOffice.
+
+  The interface font needs nothing here: LibreOffice uses the GTK VCL plugin on
+  a ROS desktop, so its menus and dialogs already follow the ROS interface font.
+  What this sets is the default font inside new documents, which comes from
+  LibreOffice's own registry rather than from GTK.
+-->
+<oor:data xmlns:oor="http://openoffice.org/2001/registry"
+          xmlns:xs="http://www.w3.org/2001/XMLSchema"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <oor:component-data oor:name="Writer" oor:package="org.openoffice.Office">
+    <node oor:name="DefaultFont">
+      <prop oor:name="Standard" oor:type="xs:string">
+        <value>Funnel Display</value>
+      </prop>
+      <prop oor:name="Heading" oor:type="xs:string">
+        <value>Funnel Display</value>
+      </prop>
+      <prop oor:name="List" oor:type="xs:string">
+        <value>Funnel Display</value>
+      </prop>
+      <prop oor:name="Caption" oor:type="xs:string">
+        <value>Funnel Display</value>
+      </prop>
+      <prop oor:name="Index" oor:type="xs:string">
+        <value>Funnel Display</value>
+      </prop>
+    </node>
+  </oor:component-data>
+
+  <oor:component-data oor:name="Common" oor:package="org.openoffice.Office">
+    <node oor:name="Misc">
+      <prop oor:name="FirstRun" oor:type="xs:boolean">
+        <value>false</value>
+      </prop>
+      <prop oor:name="ShowTipOfTheDay" oor:type="xs:boolean">
+        <value>false</value>
+      </prop>
+    </node>
+  </oor:component-data>
+
+</oor:data>

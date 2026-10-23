@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Isoko
+GenericName=ROS Store
+Comment=Install ROS applications
+Exec=ros-store
+Icon=rw.ros.Store
+Terminal=false
+Categories=GNOME;GTK;System;PackageManager;
+Keywords=store;software;install;apps;isoko;
+StartupNotify=true
+StartupWMClass=rw.ros.Store

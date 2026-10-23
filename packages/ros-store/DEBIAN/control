@@ -1,0 +1,16 @@
+Package: ros-store
+Version: @VERSION@
+Section: admin
+Priority: optional
+Architecture: all
+Depends: python3, python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, ros-agent (= @VERSION@), polkitd, pkexec
+Recommends: ros-branding
+Maintainer: ROS Project <yvesm189@users.noreply.github.com>
+Homepage: https://github.com/yvesm189/ros
+Description: Isoko, the ROS Store
+ Browses the application catalogue published by a ROS management console and
+ installs from it.
+ .
+ The store runs as the person using the machine and never as root: it shells
+ out to ros-agent through pkexec, and the agent accepts only a catalogue slug,
+ so the authorisation cannot be turned into installing an arbitrary package.

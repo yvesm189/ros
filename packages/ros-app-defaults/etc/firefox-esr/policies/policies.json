@@ -1,0 +1,28 @@
+{
+  "policies": {
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisablePocket": true,
+    "DontCheckDefaultBrowser": true,
+    "OfferToSaveLoginsDefault": false,
+    "EnableTrackingProtection": {
+      "Value": true,
+      "Locked": false,
+      "Cryptomining": true,
+      "Fingerprinting": true
+    },
+    "FirefoxHome": {
+      "Pocket": false,
+      "Snippets": false,
+      "SponsoredTopSites": false
+    },
+    "PDFjs": {
+      "Enabled": true
+    },
+    "UserMessaging": {
+      "WhatsNew": false,
+      "ExtensionRecommendations": false,
+      "SkipOnboarding": true
+    }
+  }
+}

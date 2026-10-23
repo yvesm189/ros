@@ -72,6 +72,49 @@ class BrandDefaultTests(unittest.TestCase):
             self.assertTrue(app.endswith(".desktop"), app)
 
 
+class ApplicationTests(unittest.TestCase):
+    def test_applications_are_carried_into_the_compiled_policy(self):
+        apps = [{"slug": "urubuga", "name": "Urubuga",
+                 "source": "apt", "reference": "firefox-esr"}]
+        compiled = policy.compile_policy("Default", 1, policy.default_policy(), apps)
+        self.assertEqual(compiled["applications"], apps)
+
+    def test_no_applications_by_default(self):
+        compiled = policy.compile_policy("Default", 1, policy.default_policy())
+        self.assertEqual(compiled["applications"], [])
+
+    def test_form_collects_ticked_applications(self):
+        result = policy.policy_from_form(
+            {"application:urubuga": "on", "application:inyandiko": "on",
+             "application:imibare": ""}
+        )
+        self.assertEqual(result["applications"], ["inyandiko", "urubuga"])
+
+    def test_summary_is_readable_when_empty(self):
+        compiled = policy.compile_policy("Default", 1, policy.default_policy())
+        self.assertIn("No applications", policy.application_summary(compiled))
+
+
+class CatalogueTests(unittest.TestCase):
+    def test_seed_entries_are_complete(self):
+        from app import catalogue
+
+        slugs = set()
+        for app in catalogue.seed():
+            for field in ("slug", "name", "tagline", "category", "source", "reference"):
+                self.assertTrue(app.get(field), "%s missing %s" % (app, field))
+            self.assertIn(app["source"], ("apt", "flatpak"))
+            self.assertNotIn(app["slug"], slugs, "duplicate slug")
+            slugs.add(app["slug"])
+
+    def test_catalogue_covers_the_office_formats(self):
+        from app import catalogue
+
+        taglines = " ".join(a["tagline"].lower() for a in catalogue.seed())
+        for need in ("browser", "documents", "spreadsheets", "presentations", "pdf"):
+            self.assertIn(need, taglines)
+
+
 class FormTests(unittest.TestCase):
     def test_invalid_choices_fall_back_to_defaults(self):
         result = policy.policy_from_form(

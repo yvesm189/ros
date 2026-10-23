@@ -1,0 +1,71 @@
+{# Shared by the add and edit forms on the applications page.
+   `entry` is the application being edited, or undefined when adding. #}
+<div class="grid two">
+    <div class="field">
+        <label>ROS name</label>
+        <input type="text" name="name" required
+               value="{{ entry.name if entry else '' }}" placeholder="Urubuga">
+    </div>
+    <div class="field">
+        <label>What it is, in a few words</label>
+        <input type="text" name="tagline"
+               value="{{ entry.tagline if entry else '' }}" placeholder="Web browser">
+    </div>
+</div>
+
+{% if not entry %}
+<div class="field">
+    <label>Identifier, lowercase and stable</label>
+    <input type="text" name="slug" required placeholder="urubuga">
+</div>
+{% endif %}
+
+<div class="field">
+    <label>Description</label>
+    <textarea name="description" rows="2"
+              placeholder="One or two sentences for the store listing.">{{ entry.description if entry else '' }}</textarea>
+</div>
+
+<div class="grid two">
+    <div class="field">
+        <label>Category</label>
+        <select name="category">
+            {% for c in ['Internet', 'Office', 'Media', 'Utilities', 'System', 'Other'] %}
+                <option value="{{ c }}" {{ 'selected' if entry and entry.category == c }}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="field">
+        <label>Built on, the open source upstream</label>
+        <input type="text" name="upstream"
+               value="{{ entry.upstream if entry else '' }}" placeholder="Firefox ESR">
+    </div>
+</div>
+
+<div class="grid two">
+    <div class="field">
+        <label>Install from</label>
+        <select name="source">
+            <option value="apt" {{ 'selected' if entry and entry.source == 'apt' }}>apt</option>
+            <option value="flatpak" {{ 'selected' if entry and entry.source == 'flatpak' }}>flatpak</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>Package name or flatpak reference</label>
+        <input type="text" name="reference"
+               value="{{ entry.reference if entry else '' }}" placeholder="firefox-esr">
+    </div>
+</div>
+
+<div class="grid two">
+    <div class="field">
+        <label>Desktop file, for pinning it to the dock</label>
+        <input type="text" name="desktop_id"
+               value="{{ entry.desktop_id if entry else '' }}" placeholder="firefox-esr.desktop">
+    </div>
+    <div class="field">
+        <label>Icon name</label>
+        <input type="text" name="icon"
+               value="{{ entry.icon if entry else 'application-x-executable-symbolic' }}">
+    </div>
+</div>

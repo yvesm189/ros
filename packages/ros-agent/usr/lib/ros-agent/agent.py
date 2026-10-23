@@ -38,6 +38,11 @@ CONFIG_PATH = os.environ.get("ROS_AGENT_CONFIG", "/etc/ros/agent.conf")
 STATE_DIR = os.environ.get("ROS_AGENT_STATE", "/var/lib/ros-agent")
 IDENTITY_PATH = os.path.join(STATE_DIR, "identity.json")
 POLICY_CACHE_PATH = os.path.join(STATE_DIR, "policy.json")
+# The catalogue is public - it is a shop window - and the ROS Store runs as
+# the person using the machine, so it lives outside the agent's private state
+# directory where that person can actually read it.
+CATALOGUE_CACHE_DIR = os.environ.get("ROS_CATALOGUE_DIR", "/var/cache/ros-agent")
+CATALOGUE_CACHE_PATH = os.path.join(CATALOGUE_CACHE_DIR, "catalogue.json")
 
 # Where the agent writes the policy it receives. 50- sorts after the defaults
 # shipped by ros-branding (00-40), so the fleet can override the image without
@@ -277,7 +282,139 @@ def apply_policy(policy: Dict[str, Any]) -> Dict[str, Any]:
         len(policy.get("dconf", {})),
         len(locks),
     )
-    return {"sections": len(policy.get("dconf", {})), "locks": len(locks)}
+
+    detail = {"sections": len(policy.get("dconf", {})), "locks": len(locks)}
+
+    # Settings first, applications second: a machine should look right even if
+    # a package server is unreachable.
+    applications = apply_applications(policy)
+    if applications["installed"] or applications["failed"]:
+        detail["applications"] = applications
+
+    return detail
+
+
+# --------------------------------------------------------------------------- #
+# Applications
+# --------------------------------------------------------------------------- #
+def is_installed(app: Dict[str, Any]) -> bool:
+    source = app.get("source", "apt")
+    reference = app.get("reference", "")
+    if not reference:
+        return False
+
+    if source == "flatpak":
+        result = subprocess.run(
+            ["flatpak", "info", reference],
+            capture_output=True, text=True, check=False,
+        )
+        return result.returncode == 0
+
+    result = subprocess.run(
+        ["dpkg-query", "-W", "-f=${Status}", reference],
+        capture_output=True, text=True, check=False,
+    )
+    return "install ok installed" in result.stdout
+
+
+def install_application(app: Dict[str, Any]) -> None:
+    source = app.get("source", "apt")
+    reference = app["reference"]
+
+    if source == "flatpak":
+        command = ["flatpak", "install", "-y", "--noninteractive", reference]
+    else:
+        command = [
+            "apt-get", "install", "-y", "--no-install-recommends", reference
+        ]
+
+    environment = dict(os.environ, DEBIAN_FRONTEND="noninteractive")
+    result = subprocess.run(
+        command, capture_output=True, text=True, check=False,
+        env=environment, timeout=1800,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "%s install of %s failed: %s"
+            % (source, reference, (result.stderr or result.stdout).strip()[:300])
+        )
+
+
+def apply_applications(policy: Dict[str, Any]) -> Dict[str, Any]:
+    """Install the applications a policy assigns, and only those.
+
+    Nothing is ever removed here. A policy that stops listing an application
+    means new machines will not get it; taking software off a machine somebody
+    is using is a separate, destructive decision that a sync timer should not
+    be making on its own.
+    """
+    applications = policy.get("applications") or []
+    installed, failed, already = [], [], []
+
+    missing = [app for app in applications if not is_installed(app)]
+    if any(app.get("source", "apt") == "apt" for app in missing):
+        # A freshly imaged machine has no package lists at all - the image build
+        # throws them away to keep the ISO small - and a machine that has been
+        # off for a month has stale ones. Refresh once per run, not per package.
+        log.info("refreshing package lists")
+        result = subprocess.run(
+            ["apt-get", "update"],
+            capture_output=True, text=True, check=False,
+            env=dict(os.environ, DEBIAN_FRONTEND="noninteractive"), timeout=600,
+        )
+        if result.returncode != 0:
+            log.warning(
+                "apt-get update failed, trying the installs anyway: %s",
+                (result.stderr or result.stdout).strip()[:200],
+            )
+
+    for app in applications:
+        name = app.get("name", app.get("reference", "?"))
+        try:
+            if is_installed(app):
+                already.append(name)
+                continue
+            log.info("installing %s (%s:%s)", name, app.get("source"), app.get("reference"))
+            install_application(app)
+            installed.append(name)
+        except Exception as exc:
+            log.error("%s", exc)
+            failed.append(name)
+
+    if installed or failed:
+        log.info(
+            "applications: %d installed, %d already present, %d failed",
+            len(installed), len(already), len(failed),
+        )
+    return {"installed": installed, "present": already, "failed": failed}
+
+
+def fetch_catalogue(config: Config) -> Dict[str, Any]:
+    """The store's shop window, cached so it still works offline."""
+    identity = read_identity() or {}
+    server = identity.get("server") or config.server
+    if server:
+        config.server = server.rstrip("/")
+        try:
+            catalogue = request(config, "GET", "/api/v1/catalogue")
+            try:
+                os.makedirs(CATALOGUE_CACHE_DIR, exist_ok=True)
+                os.chmod(CATALOGUE_CACHE_DIR, 0o755)
+                with open(CATALOGUE_CACHE_PATH, "w", encoding="utf-8") as handle:
+                    json.dump(catalogue, handle, indent=2)
+                os.chmod(CATALOGUE_CACHE_PATH, 0o644)
+            except OSError:
+                # A non-root caller can read the cache but not refresh it.
+                pass
+            return catalogue
+        except ServerError as exc:
+            log.warning("could not refresh the catalogue: %s", exc)
+
+    try:
+        with open(CATALOGUE_CACHE_PATH, "r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return {"applications": []}
 
 
 def cache_policy(policy: Dict[str, Any]) -> None:
@@ -381,6 +518,9 @@ def cmd_sync(config: Config, args: argparse.Namespace) -> int:
     if status == "applied":
         cache_policy(policy)
 
+    # Keep the store's shop window current while we have the server anyway.
+    fetch_catalogue(config)
+
     request(
         config,
         "POST",
@@ -397,6 +537,63 @@ def cmd_apply(config: Config, args: argparse.Namespace) -> int:
         log.error("no cached policy at %s; run `ros-agent sync` first", POLICY_CACHE_PATH)
         return 2
     apply_policy(policy)
+    return 0
+
+
+def cmd_catalogue(config: Config, args: argparse.Namespace) -> int:
+    catalogue = fetch_catalogue(config)
+    for app in catalogue.get("applications", []):
+        app["installed"] = is_installed(app)
+    print(json.dumps(catalogue, indent=2))
+    return 0
+
+
+def cmd_app(config: Config, args: argparse.Namespace) -> int:
+    """Install or remove one application by its catalogue slug.
+
+    This is what the ROS Store calls through pkexec. It takes a slug rather
+    than a package name so that the store cannot be talked into installing
+    something that is not in the catalogue.
+    """
+    catalogue = fetch_catalogue(config)
+    wanted = None
+    for app in catalogue.get("applications", []):
+        if app.get("slug") == args.slug:
+            wanted = app
+            break
+
+    if wanted is None:
+        log.error("no application '%s' in the catalogue", args.slug)
+        return 2
+
+    if args.action == "install":
+        if is_installed(wanted):
+            log.info("%s is already installed", wanted["name"])
+            return 0
+        try:
+            install_application(wanted)
+        except Exception as exc:
+            log.error("%s", exc)
+            return 1
+        log.info("installed %s", wanted["name"])
+        return 0
+
+    # remove
+    source = wanted.get("source", "apt")
+    reference = wanted["reference"]
+    if source == "flatpak":
+        command = ["flatpak", "uninstall", "-y", "--noninteractive", reference]
+    else:
+        command = ["apt-get", "remove", "-y", reference]
+    result = subprocess.run(
+        command, capture_output=True, text=True, check=False,
+        env=dict(os.environ, DEBIAN_FRONTEND="noninteractive"), timeout=1800,
+    )
+    if result.returncode != 0:
+        log.error("removing %s failed: %s", wanted["name"],
+                  (result.stderr or result.stdout).strip()[:300])
+        return 1
+    log.info("removed %s", wanted["name"])
     return 0
 
 
@@ -442,6 +639,16 @@ def main(argv=None) -> int:
 
     status = sub.add_parser("status", help="print local agent state as JSON")
     status.set_defaults(func=cmd_status)
+
+    catalogue = sub.add_parser(
+        "catalogue", help="print the application catalogue, with install state"
+    )
+    catalogue.set_defaults(func=cmd_catalogue)
+
+    app_cmd = sub.add_parser("app", help="install or remove a catalogue application")
+    app_cmd.add_argument("action", choices=["install", "remove"])
+    app_cmd.add_argument("slug")
+    app_cmd.set_defaults(func=cmd_app)
 
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):

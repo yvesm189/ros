@@ -80,7 +80,16 @@ costs one small request per sync.
       "favorite-apps": "['org.gnome.Nautilus.desktop', 'org.gnome.TextEditor.desktop']"
     }
   },
-  "locks": ["/org/gnome/desktop/background/picture-uri"]
+  "locks": ["/org/gnome/desktop/background/picture-uri"],
+  "applications": [
+    {
+      "slug": "ububiko",
+      "name": "Ububiko",
+      "source": "apt",
+      "reference": "file-roller",
+      "desktop_id": "org.gnome.FileRoller.desktop"
+    }
+  ]
 }
 ```
 
@@ -93,6 +102,12 @@ reports.
 The agent writes this to `/etc/dconf/db/ros.d/50-managed`, writes `locks` to
 `/etc/dconf/db/ros.d/locks/50-managed`, and runs `dconf update`.
 
+`applications` is the catalogue entries the console has already resolved from
+the slugs the policy selects. The agent has no catalogue of its own and should
+not need one: everything required to install something arrives with the policy.
+The agent installs what is missing and **never removes anything** — a policy
+that stops listing an application only means new machines will not get it.
+
 ## `POST /api/v1/devices/{id}/policy-result`
 
 ```json
@@ -101,6 +116,28 @@ The agent writes this to `/etc/dconf/db/ros.d/50-managed`, writes `locks` to
 
 `status` is `applied` or `failed`; on failure `detail` carries the error, and
 the device shows as failed in the console instead of silently drifting.
+
+## `GET /api/v1/catalogue`
+
+Unauthenticated, and deliberately so: it is a shop window, it carries no device
+or fleet information, and the store on a machine that has not enrolled yet
+still needs to show it.
+
+```json
+{
+  "applications": [
+    {
+      "slug": "urubuga", "name": "Urubuga", "tagline": "Web browser",
+      "description": "…", "category": "Internet", "upstream": "Firefox ESR",
+      "source": "apt", "reference": "firefox-esr",
+      "desktop_id": "firefox-esr.desktop", "icon": "web-browser-symbolic"
+    }
+  ]
+}
+```
+
+The agent caches this at `/var/cache/ros-agent/catalogue.json`, world readable,
+because the ROS Store runs as the person at the keyboard rather than as root.
 
 ## Transport
 

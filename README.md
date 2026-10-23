@@ -34,10 +34,12 @@ machine, change its wallpaper, dock position and accent colour from a browser,
 and watch the change land — but it is version 0.1.0 and nothing about it is
 settled.
 
-ROS ships no third-party browser or office suite. The basic application set is
-being built as ROS applications on open source upstreams, carrying the ROS
-interface; until those exist the image ships the GNOME system tools and nothing
-else. See [docs/applications.md](docs/applications.md).
+ROS ships no third-party browser or office suite. It ships a **catalogue** of
+ROS applications built on open source upstreams — Urubuga the browser,
+Inyandiko for documents, Imibare for spreadsheets, Imurika for slides,
+Umusomyi for PDFs — a store to install them from (**Isoko**), and a console
+that decides which of them a machine gets. See
+[docs/applications.md](docs/applications.md).
 
 ## How the pieces fit
 
@@ -81,8 +83,8 @@ Everything runs locally. You need Docker, Python 3, and make.
 make desktop
 ```
 
-That builds a container running the real GNOME session with the real branding
-and font packages, on a TigerVNC server. Connect any VNC client:
+That builds a container running a real login screen and a real GNOME session
+with the real ROS packages. Connect any VNC client and sign in as `ros` / `ros`:
 
 ```bash
 vncviewer 127.0.0.1:5900          # TigerVNC
@@ -90,7 +92,7 @@ open vnc://127.0.0.1:5900         # macOS Screen Sharing
 ```
 
 About a minute, rather than the hours an ISO takes. It needs `--privileged`,
-because GNOME Shell requires logind and that means systemd as PID 1 inside the
+because GNOME requires logind and that means systemd as PID 1 inside the
 container.
 
 **2. Start the console**
@@ -150,6 +152,8 @@ thing.
 | `branding/fonts/` | The brand typefaces, the one copy everything else stages from |
 | `packages/ros-branding/` | Wallpapers, logo, boot splash, GTK accent, the default dconf policy |
 | `packages/ros-fonts/` | Funnel Display and Space Grotesk, and the fontconfig rules behind them |
+| `packages/ros-store/` | Isoko, the ROS Store |
+| `packages/ros-app-defaults/` | What makes catalogue applications behave like part of ROS |
 | `packages/ros-agent/` | The management agent and its systemd timer |
 | `packages/ros-desktop-base/` | Metapackage: "this machine is a ROS workstation" |
 | `management/console/` | The console — FastAPI, SQLite, server-rendered UI |
@@ -165,7 +169,7 @@ thing.
 | [docs/architecture.md](docs/architecture.md) | Why it is built this way, and what each decision cost |
 | [docs/building.md](docs/building.md) | Building packages and ISOs, and what to do when a build breaks |
 | [docs/branding.md](docs/branding.md) | Customising GNOME: typeface, colours, wallpaper, dock, splash, login screen |
-| [docs/applications.md](docs/applications.md) | Why ROS ships no third-party browser or office suite, and what replaces them |
+| [docs/applications.md](docs/applications.md) | The application catalogue, the store, and how a console hands applications to machines |
 | [docs/management.md](docs/management.md) | Running the console, enrolling machines, writing policy |
 | [docs/agent-protocol.md](docs/agent-protocol.md) | The agent/console HTTP contract |
 | [docs/roadmap.md](docs/roadmap.md) | What is next, and what is deliberately not being built yet |

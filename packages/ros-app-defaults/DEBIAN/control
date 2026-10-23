@@ -1,0 +1,15 @@
+Package: ros-app-defaults
+Version: @VERSION@
+Section: misc
+Priority: optional
+Architecture: all
+Depends: ros-fonts (= @VERSION@)
+Maintainer: ROS Project <yvesm189@users.noreply.github.com>
+Homepage: https://github.com/yvesm189/ros
+Description: ROS defaults for catalogue applications
+ Configuration that makes the applications in the ROS catalogue behave like
+ part of ROS rather than like their upstreams: the brand font inside documents
+ and web pages, telemetry off, and no first-run or upsell prompts.
+ .
+ The files are inert until the application they configure is installed, so this
+ package is safe on a workstation that has none of them.

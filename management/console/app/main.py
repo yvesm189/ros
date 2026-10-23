@@ -24,7 +24,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import __version__, db, policy as policy_mod
+from . import __version__, catalogue as catalogue_mod, db, policy as policy_mod
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ADMIN_PASSWORD = os.environ.get("ROS_ADMIN_PASSWORD", "ros-admin")
@@ -41,7 +41,7 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 # --------------------------------------------------------------------------- #
 @app.on_event("startup")
 def startup() -> None:
-    db.init_db(policy_mod.default_policy())
+    db.init_db(policy_mod.default_policy(), catalogue_mod.seed())
     if not db.get_setting("enrollment_key"):
         key = os.environ.get("ROS_ENROLLMENT_KEY") or secrets.token_urlsafe(24)
         db.set_setting("enrollment_key", key)
@@ -177,6 +177,31 @@ async def heartbeat(device_id: str, request: Request) -> Dict[str, Any]:
     }
 
 
+def resolve_applications(stored: Dict[str, Any]) -> list:
+    """Turn the slugs a policy selects into catalogue entries for the agent.
+
+    The agent has no catalogue of its own and should not need one: everything
+    it needs to install something arrives with the policy.
+    """
+    slugs = stored.get("applications") or []
+    if not slugs:
+        return []
+    placeholders = ",".join("?" for _ in slugs)
+    rows = db.query(
+        "SELECT slug, name, source, reference, desktop_id FROM applications"
+        " WHERE published = 1 AND slug IN (%s) ORDER BY name" % placeholders,
+        slugs,
+    )
+    return [dict(row) for row in rows]
+
+
+def compiled_for_group(group: Dict[str, Any]) -> Dict[str, Any]:
+    stored = json.loads(group["policy"])
+    return policy_mod.compile_policy(
+        group["name"], group["revision"], stored, resolve_applications(stored)
+    )
+
+
 def device_group(device: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     row = None
     if device.get("group_id"):
@@ -191,10 +216,8 @@ def get_policy(device_id: str, request: Request) -> Dict[str, Any]:
     device = authenticate_device(request, device_id)
     group = device_group(device)
     if not group:
-        return {"name": "none", "revision": 0, "dconf": {}, "locks": []}
-    return policy_mod.compile_policy(
-        group["name"], group["revision"], json.loads(group["policy"])
-    )
+        return {"name": "none", "revision": 0, "dconf": {}, "locks": [], "applications": []}
+    return compiled_for_group(group)
 
 
 @app.post("/api/v1/devices/{device_id}/policy-result")
@@ -328,11 +351,7 @@ def device_page(request: Request, device_id: str, _: str = Depends(require_admin
     device["inventory"] = json.loads(device["inventory"] or "{}")
     device["seen_label"] = seen_label(device["last_seen"])
     group = device_group(device)
-    compiled = (
-        policy_mod.compile_policy(group["name"], group["revision"], json.loads(group["policy"]))
-        if group
-        else None
-    )
+    compiled = compiled_for_group(group) if group else None
     return render(
         request,
         "device.html",
@@ -340,6 +359,7 @@ def device_page(request: Request, device_id: str, _: str = Depends(require_admin
         group=group,
         groups=db.query("SELECT * FROM groups ORDER BY name"),
         keyfile=policy_mod.keyfile_preview(compiled) if compiled else "",
+        applications=compiled["applications"] if compiled else [],
         events=[
             dict(e, when=seen_label(e["ts"]))
             for e in map(dict, db.query(
@@ -414,7 +434,13 @@ def group_page(request: Request, group_id: int, _: str = Depends(require_admin))
     stored = json.loads(group["policy"])
     settings = dict(policy_mod.DEFAULT_SETTINGS)
     settings.update(stored.get("settings") or {})
-    compiled = policy_mod.compile_policy(group["name"], group["revision"], stored)
+    compiled = compiled_for_group(group)
+    selected = set(stored.get("applications") or [])
+    apps = [dict(row) for row in db.query(
+        "SELECT * FROM applications WHERE published = 1 ORDER BY category, name"
+    )]
+    for app in apps:
+        app["selected"] = app["slug"] in selected
     return render(
         request,
         "group.html",
@@ -423,6 +449,8 @@ def group_page(request: Request, group_id: int, _: str = Depends(require_admin))
         locks="\n".join(stored.get("locks") or []),
         extra_dconf=json.dumps(stored.get("extra_dconf") or {}, indent=2),
         keyfile=policy_mod.keyfile_preview(compiled),
+        applications=apps,
+        application_summary=policy_mod.application_summary(compiled),
         accent_colors=policy_mod.ACCENT_COLORS,
         color_schemes=policy_mod.COLOR_SCHEMES,
         dock_positions=policy_mod.DOCK_POSITIONS,
@@ -455,6 +483,106 @@ def delete_group(request: Request, group_id: int, _: str = Depends(require_admin
         db.execute("DELETE FROM groups WHERE id = ?", (group_id,))
         db.log_event("policy", "deleted group '%s'" % row["name"])
     return RedirectResponse("/groups", status_code=303)
+
+
+@app.get("/applications", response_class=HTMLResponse)
+def applications_page(request: Request, _: str = Depends(require_admin)) -> HTMLResponse:
+    rows = [dict(row) for row in db.query(
+        "SELECT * FROM applications ORDER BY category, name"
+    )]
+    for row in rows:
+        row["group_count"] = sum(
+            1
+            for group in db.query("SELECT policy FROM groups")
+            if row["slug"] in (json.loads(group["policy"]).get("applications") or [])
+        )
+    return render(
+        request,
+        "applications.html",
+        applications=rows,
+        categories=catalogue_mod.CATEGORIES,
+    )
+
+
+@app.post("/applications")
+async def create_application(request: Request, _: str = Depends(require_admin)) -> Response:
+    form = dict(await request.form())
+    slug = str(form.get("slug", "")).strip().lower().replace(" ", "-")
+    name = str(form.get("name", "")).strip()
+    if not slug or not name:
+        return RedirectResponse("/applications", status_code=303)
+
+    now = int(time.time())
+    try:
+        db.execute(
+            "INSERT INTO applications (slug, name, tagline, description, category,"
+            " upstream, source, reference, desktop_id, icon, published,"
+            " created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
+            (
+                slug, name,
+                str(form.get("tagline", "")), str(form.get("description", "")),
+                str(form.get("category", "Other")), str(form.get("upstream", "")),
+                str(form.get("source", "apt")), str(form.get("reference", "")),
+                str(form.get("desktop_id", "")),
+                str(form.get("icon", "application-x-executable-symbolic")),
+                now, now,
+            ),
+        )
+    except Exception:
+        # A duplicate slug is the only realistic failure and is not worth a 500.
+        return RedirectResponse("/applications", status_code=303)
+    db.log_event("catalogue", "added application '%s'" % name)
+    return RedirectResponse("/applications", status_code=303)
+
+
+@app.post("/applications/{application_id}")
+async def save_application(
+    request: Request, application_id: int, _: str = Depends(require_admin)
+) -> Response:
+    form = dict(await request.form())
+    db.execute(
+        "UPDATE applications SET name = ?, tagline = ?, description = ?, category = ?,"
+        " upstream = ?, source = ?, reference = ?, desktop_id = ?, icon = ?,"
+        " published = ?, updated_at = ? WHERE id = ?",
+        (
+            str(form.get("name", "")), str(form.get("tagline", "")),
+            str(form.get("description", "")), str(form.get("category", "Other")),
+            str(form.get("upstream", "")), str(form.get("source", "apt")),
+            str(form.get("reference", "")), str(form.get("desktop_id", "")),
+            str(form.get("icon", "application-x-executable-symbolic")),
+            1 if form.get("published") else 0,
+            int(time.time()), application_id,
+        ),
+    )
+    db.log_event("catalogue", "updated application '%s'" % form.get("name", ""))
+    return RedirectResponse("/applications", status_code=303)
+
+
+@app.post("/applications/{application_id}/delete")
+def delete_application(
+    request: Request, application_id: int, _: str = Depends(require_admin)
+) -> Response:
+    row = db.query_one("SELECT name FROM applications WHERE id = ?", (application_id,))
+    db.execute("DELETE FROM applications WHERE id = ?", (application_id,))
+    if row:
+        db.log_event("catalogue", "removed application '%s'" % row["name"])
+    return RedirectResponse("/applications", status_code=303)
+
+
+@app.get("/api/v1/catalogue")
+def catalogue_api(request: Request) -> Dict[str, Any]:
+    """The published catalogue, for the ROS Store on a workstation.
+
+    Unauthenticated on purpose: it is a shop window, it contains no device or
+    fleet information, and the store on a machine that has not enrolled yet
+    still needs to be able to show it.
+    """
+    rows = db.query(
+        "SELECT slug, name, tagline, description, category, upstream, source,"
+        " reference, desktop_id, icon FROM applications"
+        " WHERE published = 1 ORDER BY category, name"
+    )
+    return {"applications": [dict(row) for row in rows]}
 
 
 @app.get("/events", response_class=HTMLResponse)
