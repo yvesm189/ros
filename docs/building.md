@@ -116,6 +116,11 @@ Four things about that container are worth knowing:
   on it, which is exactly the shape this needs. The shipped image uses GDM.
 - **Screen locking is disabled in the session**, and GNOME says so in a
   notification. That is the same cause: locking is GDM's job.
+- **One viewer at a time.** Disconnect before reconnecting. GNOME 48 runs the
+  session as systemd user units, and a second login while another session is
+  live loses a race with the first one's user manager. LightDM tears the user's
+  units down when a session ends, so connect / log in / disconnect / reconnect
+  works indefinitely - but two clients at once does not.
 - **It is a development tool.** The port is published on `127.0.0.1` only and
   there is no password unless you pass one. Keep both of those true, or pass
   `--password`.

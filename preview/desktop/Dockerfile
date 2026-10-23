@@ -76,12 +76,14 @@ RUN apt-get update \
 RUN useradd --create-home --uid 1000 --shell /bin/bash --comment "ROS User" ros
 
 COPY preview/desktop/lightdm.conf /etc/lightdm/lightdm.conf
+COPY preview/desktop/ros-session-cleanup /usr/local/bin/ros-session-cleanup
+COPY preview/desktop/logind.conf.d/50-ros-preview.conf /etc/systemd/logind.conf.d/50-ros-preview.conf
 COPY preview/desktop/lightdm-gtk-greeter.conf /etc/lightdm/lightdm-gtk-greeter.conf
 COPY preview/desktop/start.sh /usr/local/bin/ros-desktop-preview
 COPY preview/desktop/ros-preview.service /etc/systemd/system/
 COPY preview/desktop/ros-agent-preview.conf \
      /etc/systemd/system/ros-agent.timer.d/preview.conf
-RUN chmod +x /usr/local/bin/ros-desktop-preview \
+RUN chmod +x /usr/local/bin/ros-desktop-preview /usr/local/bin/ros-session-cleanup \
     && systemctl enable ros-preview.service \
     && systemctl enable lightdm.service
 

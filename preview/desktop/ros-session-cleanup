@@ -1,0 +1,23 @@
+#!/bin/sh
+# Run by LightDM after a session ends, as root, with USER set.
+#
+# GNOME 48 runs the session as systemd user units under user@UID.service. When
+# a VNC client disconnects, Xvnc dies and LightDM stops the session - but the
+# user manager and its gnome-session units survive, because nothing told them
+# to stop. The next login then finds gnome-session-manager@.service already
+# active, gnome-session exits 1 immediately, LightDM stops the seat, and the
+# new client is disconnected a second after the password is accepted. In other
+# words: the first login works and every one after it fails, which is a
+# confusing enough symptom to be worth this comment.
+#
+# This runs on session *end* only. Doing the same thing on session setup, to
+# let a new connection take over from a live one, was tried and does not work:
+# the new session loses a race with the old user manager shutting down and both
+# end up dead. One viewer at a time; disconnect before reconnecting.
+set -u
+
+[ -n "${USER:-}" ] || exit 0
+
+loginctl terminate-user "${USER}" >/dev/null 2>&1 || true
+
+exit 0

@@ -45,10 +45,14 @@ before 1.0 the minor number carries breaking changes.
 
 ### Fixed
 
-- **Logging in no longer drops the VNC connection.** Debian 13 ships no
-  `gnome-xorg.desktop` - only Wayland sessions - so LightDM silently fell back
-  to `lightdm-xsession`, which exits immediately and takes the seat, and the
-  connection, with it. The preview now installs `gnome-session-xsession`.
+- **Logging in no longer drops the VNC connection.** Two separate causes, one
+  symptom. Debian 13 ships no `gnome-xorg.desktop` - only Wayland sessions - so
+  LightDM silently fell back to `lightdm-xsession`, which exits immediately and
+  takes the seat, and the connection, with it; the preview now installs
+  `gnome-session-xsession`. And GNOME 48 leaves its systemd user units running
+  after a VNC client disconnects, so the *second* login found
+  `gnome-session-manager@.service` already active and failed the same way -
+  LightDM now tears the user's units down when a session ends.
 - The agent waits for the dpkg lock instead of failing on it, so a sync that
   collides with unattended upgrades catches up rather than giving up.
 - A command approved on a machine that does not have the binary reports that in
