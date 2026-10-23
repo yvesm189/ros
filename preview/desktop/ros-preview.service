@@ -1,0 +1,14 @@
+[Unit]
+Description=ROS desktop preview (Xvfb, GNOME Shell, noVNC)
+After=systemd-logind.service dbus.service network-online.target
+Wants=systemd-logind.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ros-desktop-preview
+Restart=on-failure
+RestartSec=3
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

@@ -78,6 +78,45 @@ Expect roughly 2.5–3.5 GB of ISO and about 10 GB of scratch space.
 Clearing `/etc/machine-id` matters: it is regenerated on first boot, which is
 what makes each installed machine enroll as its own device.
 
+## Desktop preview in a browser
+
+The fastest way to see what the branding and the policy actually do:
+
+```bash
+make desktop                      # image defaults only
+make desktop KEY=<enrollment key> # enrolled in the local console
+```
+
+Then open **http://localhost:6080/vnc.html?autoconnect=true&resize=scale**.
+
+It builds a container running the real GNOME session, the real `ros-branding`
+package and the real `ros-agent`, rendered by Xvfb and served over noVNC. The
+agent runs on its actual systemd timer, shortened to twenty seconds so a policy
+change can be watched landing.
+
+Two things about that container are worth knowing:
+
+- **systemd runs as PID 1**, which is why it needs `--privileged`. GNOME Shell
+  48 asks `org.freedesktop.login1` about the session before it will draw
+  anything, and there is no way to opt out. elogind would be the lighter
+  answer, but it conflicts with systemd on Debian 13.
+- **It is a development tool.** A privileged container with a passwordless VNC
+  server on it should never be reachable from anything but your own machine.
+
+Useful knobs:
+
+```bash
+./scripts/preview-desktop.sh --geometry 1920x1080
+./scripts/preview-desktop.sh --port 6081 --unmanaged
+docker logs -f ros-desktop
+docker exec ros-desktop journalctl -u ros-preview.service
+docker exec ros-desktop ros-agent sync --force
+```
+
+The GNOME session comes up in the Activities overview, because there is no
+`gnome-session` to tell it otherwise; the start script sends an Escape once the
+shell is drawing. That is cosmetic, and only applies to this container.
+
 ## Preview
 
 ```bash

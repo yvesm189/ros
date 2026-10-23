@@ -9,7 +9,7 @@ ARCH    ?= amd64
 HOST_PLATFORM := linux/$(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
 
 .DEFAULT_GOAL := help
-.PHONY: help packages iso iso-arm64 preview console console-dev agent-dev test check lint render clean distclean
+.PHONY: help packages iso iso-arm64 preview desktop console console-dev agent-dev test check lint render clean distclean
 
 help: ## Show this help
 	@echo "ROS $(VERSION)"
@@ -30,6 +30,9 @@ iso-arm64: ## Build an arm64 ISO - native speed on Apple silicon
 
 preview: ## Boot the newest ISO in QEMU
 	@./scripts/preview.sh
+
+desktop: ## Open a ROS desktop in your browser on :6080 (KEY=... to have it managed)
+	@./scripts/preview-desktop.sh $(if $(KEY),--key $(KEY))
 
 console: ## Run the management console in Docker on :8000
 	@docker compose -f management/docker-compose.yml up --build

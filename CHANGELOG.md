@@ -46,3 +46,6 @@ change its desktop from a browser, watch the change land.
   themselves in containers
 - CI: lint, unit tests, package install on a clean Debian 13, and a device API
   check against the real console image
+- A browser-accessible desktop preview: the real GNOME session with the real
+  branding and agent, served over noVNC, so the desktop and the management loop
+  can be seen in about a minute instead of a multi-hour image build

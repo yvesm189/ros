@@ -10,7 +10,7 @@ A customised GNOME workstation image, and the server that configures every copy 
 [![CI](https://github.com/yvesm189/ros/actions/workflows/ci.yml/badge.svg)](https://github.com/yvesm189/ros/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
-<img src="docs/images/wallpaper-dark.png" width="760" alt="ROS default wallpaper">
+<img src="docs/images/desktop.png" width="820" alt="The ROS desktop">
 
 </div>
 
@@ -70,7 +70,19 @@ GNOME defaults  ◀  ROS image defaults  ◀  site keyfiles  ◀  console policy
 
 Everything runs locally. You need Docker, Python 3, and make.
 
-**1. Start the console**
+**1. Look at the desktop**
+
+```bash
+make desktop
+```
+
+That builds a container running the real GNOME session with the real branding
+package and opens it at **http://localhost:6080/vnc.html?autoconnect=true&resize=scale**.
+About a minute, rather than the hours an ISO takes. It needs `--privileged`,
+because GNOME Shell requires logind and that means systemd as PID 1 inside the
+container.
+
+**2. Start the console**
 
 ```bash
 make console          # Docker, http://127.0.0.1:8000
@@ -81,7 +93,17 @@ make console-dev      # virtualenv with auto-reload
 Sign in with the default password `ros-admin`, then open **Settings** and copy
 the enrollment key.
 
-**2. Start a workstation to manage**
+**3. Put the desktop under management**
+
+```bash
+make desktop KEY=<the enrollment key>
+```
+
+The same desktop, now enrolled. Change the accent colour, the dock position or
+the wallpaper in **Policies → Default**, save, and watch the browser tab change
+within twenty seconds.
+
+**4. Or manage a headless workstation instead**
 
 This gives you a real managed machine in a container — the same packages, the
 same agent, the same policy — without building an image:
@@ -90,17 +112,12 @@ same agent, the same policy — without building an image:
 make agent-dev KEY=<the enrollment key>
 ```
 
-**3. Change something and watch it land**
-
-In the console, open **Policies → Default**, set the accent colour to teal and
-the dock to the left, and save. Then in the container shell:
-
 ```bash
 ros-agent sync
 cat /etc/dconf/db/ros.d/50-managed
 ```
 
-**4. Build a bootable image**
+**5. Build a bootable image**
 
 ```bash
 make iso              # amd64, what an office PC boots
@@ -121,6 +138,7 @@ thing.
 | `packages/ros-agent/` | The management agent and its systemd timer |
 | `packages/ros-desktop-base/` | Metapackage: "this machine is a ROS workstation" |
 | `management/console/` | The console — FastAPI, SQLite, server-rendered UI |
+| `preview/desktop/` | The browser-accessible desktop preview container |
 | `scripts/` | Build, preview and development entry points |
 | `tests/` | Unit tests, and the container integration check |
 | `docs/` | The documents listed below |
