@@ -7,9 +7,9 @@
 #
 #   ./scripts/preview-desktop.sh                       # image defaults only
 #   ./scripts/preview-desktop.sh --key <key>           # managed by the local console
-#   ./scripts/preview-desktop.sh --password secret     # require a VNC password
+#   ./scripts/preview-desktop.sh --password secret     # set the desktop login password
 #
-# Connect with any VNC client:
+# Connect with any VNC client and you get the ROS login screen:
 #
 #   vncviewer 127.0.0.1:5900          # TigerVNC
 #   open vnc://127.0.0.1:5900         # macOS Screen Sharing
@@ -27,7 +27,7 @@ BIND="${ROS_PREVIEW_BIND:-127.0.0.1}"
 GEOMETRY="${GEOMETRY:-1600x900}"
 SERVER="${ROS_SERVER:-http://host.docker.internal:8000}"
 KEY="${ROS_ENROLLMENT_KEY:-}"
-PASSWORD="${VNC_PASSWORD:-}"
+PASSWORD="${ROS_PASSWORD:-ros}"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -63,29 +63,25 @@ docker run -d --name "${NAME}" \
     --shm-size=512m \
     -p "${BIND}:${PORT}:5900" \
     -e GEOMETRY="${GEOMETRY}" \
-    ${PASSWORD:+-e VNC_PASSWORD="${PASSWORD}"} \
+    -e ROS_PASSWORD="${PASSWORD}" \
     ${SERVER:+-e ROS_SERVER="${SERVER}"} \
     ${KEY:+-e ROS_ENROLLMENT_KEY="${KEY}"} \
     "ros-desktop-preview:${VERSION}" >/dev/null
 
 echo -n ">> waiting for the desktop"
 for _ in $(seq 1 90); do
-    # The VNC server is listening once this connects; bash's /dev/tcp avoids
-    # needing nc in the host environment.
+    # LightDM listens on 5900 once it is ready to hand out greeters; bash's
+    # /dev/tcp avoids needing nc in the host environment.
     if (exec 3<>"/dev/tcp/${BIND}/${PORT}") 2>/dev/null; then
         exec 3>&- 2>/dev/null || true
-        # Xvnc accepts connections before GNOME has drawn; give the session a
-        # moment so the first thing connecting clients see is the desktop.
-        sleep 12
         echo
         echo
-        echo "   ROS desktop:  vnc://${BIND}:${PORT}"
+        echo "   ROS login:    vnc://${BIND}:${PORT}"
         echo "   TigerVNC:     vncviewer ${BIND}:${PORT}"
-        [ -n "${PASSWORD}" ] && echo "   password:     set via --password" \
-                             || echo "   password:     none (published on ${BIND} only)"
+        echo "   sign in as:   ros / ${PASSWORD}"
         [ -n "${KEY}" ] && echo "   managed by:   ${SERVER}"
         echo
-        echo "   logs:  docker exec ${NAME} journalctl -u ros-preview.service"
+        echo "   logs:  docker exec ${NAME} journalctl -u ros-preview.service -u lightdm"
         echo "   stop:  docker rm -f ${NAME}"
         exit 0
     fi

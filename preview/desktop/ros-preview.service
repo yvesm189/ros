@@ -1,14 +1,15 @@
 [Unit]
-Description=ROS desktop preview (TigerVNC, GNOME Shell)
+Description=Prepare the ROS desktop preview
+Documentation=https://github.com/yvesm189/ros
 After=systemd-logind.service dbus.service network-online.target
 Wants=systemd-logind.service
+Before=lightdm.service
 
 [Service]
-Type=simple
+Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/local/bin/ros-desktop-preview
-Restart=on-failure
-RestartSec=3
-TimeoutStartSec=300
+TimeoutStartSec=180
 
 [Install]
 WantedBy=multi-user.target

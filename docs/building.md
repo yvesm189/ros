@@ -19,13 +19,15 @@ they are missing and re-run themselves inside a Debian container.
 make packages          # → out/packages/*.deb
 ```
 
-Four packages come out:
+Six packages come out:
 
 | Package | Contents |
 |---|---|
 | `ros-branding` | Wallpapers, logo, splash, dconf defaults and locks |
 | `ros-fonts` | Funnel Display and Space Grotesk, and the fontconfig rules that make them the system font |
 | `ros-agent` | The management agent, its systemd timer, `/etc/ros/agent.conf` |
+| `ros-store` | Isoko, the ROS Store, and its polkit action |
+| `ros-app-defaults` | Font and privacy defaults for catalogue applications |
 | `ros-desktop-base` | Metapackage: GNOME + the two above |
 
 They are built with `dpkg-deb` from plain file trees under `packages/` — no
@@ -88,26 +90,31 @@ make desktop                      # image defaults only
 make desktop KEY=<enrollment key> # enrolled in the local console
 ```
 
-Then connect any VNC client to **127.0.0.1:5900**:
+Then connect any VNC client to **127.0.0.1:5900** and sign in as `ros` / `ros`
+(`--password` changes it):
 
 ```bash
 vncviewer 127.0.0.1:5900          # TigerVNC
 open vnc://127.0.0.1:5900         # macOS Screen Sharing
 ```
 
-It builds a container running the real GNOME session, the real `ros-branding`
-and `ros-fonts` packages and the real `ros-agent`, on a TigerVNC server. The
-agent runs on its actual systemd timer, shortened to twenty seconds so a policy
-change can be watched landing.
+You get the ROS login screen, and behind it a real GNOME session with the real
+ROS packages: branding, fonts, the agent and the store. The agent runs on its
+actual systemd timer, shortened to twenty seconds so a policy change can be
+watched landing.
 
-Three things about that container are worth knowing:
+Four things about that container are worth knowing:
 
 - **systemd runs as PID 1**, which is why it needs `--privileged`. GNOME Shell
   48 asks `org.freedesktop.login1` about the session before it will draw
   anything, and there is no way to opt out. elogind would be the lighter
   answer, but it conflicts with systemd on Debian 13.
-- **Xvnc is the X server and the VNC server in one process**, so there is no
-  Xvfb to keep in sync with a separate x11vnc.
+- **LightDM stands in for GDM.** GDM needs a seat with a graphics device; a
+  container has a `seat0` with no DRM device at all, so GDM has no display to
+  manage. LightDM's VNC mode starts an Xvnc per connection and runs its greeter
+  on it, which is exactly the shape this needs. The shipped image uses GDM.
+- **Screen locking is disabled in the session**, and GNOME says so in a
+  notification. That is the same cause: locking is GDM's job.
 - **It is a development tool.** The port is published on `127.0.0.1` only and
   there is no password unless you pass one. Keep both of those true, or pass
   `--password`.
@@ -116,15 +123,12 @@ Useful knobs:
 
 ```bash
 ./scripts/preview-desktop.sh --geometry 1920x1080
-./scripts/preview-desktop.sh --password secret
+./scripts/preview-desktop.sh --password secret     # the desktop login password
 ./scripts/preview-desktop.sh --port 5901 --unmanaged
-docker exec ros-desktop journalctl -u ros-preview.service
+docker exec ros-desktop journalctl -u ros-preview.service -u lightdm
 docker exec ros-desktop ros-agent sync --force
+docker exec ros-desktop ros-agent catalogue
 ```
-
-The GNOME session comes up in the Activities overview, because there is no
-`gnome-session` to tell it otherwise; the start script sends an Escape once the
-shell is drawing. That is cosmetic, and only applies to this container.
 
 ## Preview
 
