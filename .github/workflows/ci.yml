@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build the console image
-        run: docker build -t ros-console:ci management/console
+        run: docker build -f management/console/Dockerfile -t ros-console:ci .
 
       - name: Start it and exercise the device API
         run: |

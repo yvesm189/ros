@@ -5,8 +5,8 @@ accent-color='blue'
 gtk-theme='Adwaita'
 icon-theme='Adwaita'
 cursor-theme='Adwaita'
-font-name='Inter 11'
-document-font-name='Inter 11'
+font-name='Funnel Display 11'
+document-font-name='Funnel Display 11'
 monospace-font-name='monospace 11'
 font-antialiasing='grayscale'
 font-hinting='slight'
@@ -21,7 +21,7 @@ enable-hot-corners=false
 # migration target for Windows users and this is the single change that removes
 # the most "where did the button go" support tickets.
 button-layout='appmenu:minimize,maximize,close'
-titlebar-font='Inter Bold 11'
+titlebar-font='Funnel Display SemiBold 11'
 action-middle-click-titlebar='minimize'
 
 [org/gnome/mutter]

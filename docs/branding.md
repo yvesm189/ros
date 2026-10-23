@@ -15,8 +15,6 @@ packages/ros-branding/
 │   │       ├── local.d/              left empty for the local administrator
 │   │       └── gdm.d/                the login screen
 │   ├── skel/.config/gtk-{3,4}.0/     accent colour for GTK applications
-│   ├── firefox-esr/policies/         browser policy
-│   └── chromium/policies/managed/
 └── usr/share/
     ├── backgrounds/ros/              wallpapers, light and dark
     ├── pixmaps/                      logo, and the symbolic one GDM shows
@@ -31,6 +29,55 @@ make packages
 # on a Debian machine or in `make agent-dev`:
 sudo apt install ./out/packages/ros-branding_0.1.0_all.deb
 ```
+
+## The typeface
+
+ROS is set in **Funnel Display**, with **Space Grotesk** for display text. Both
+are variable fonts under the SIL Open Font License, and both match the RHost
+console at <https://rhost.rw/console/dashboard>, so the desktop, the management
+console and the web properties read as one product.
+
+They live in exactly one place - `branding/fonts/` - and everything else stages
+them from there:
+
+| Consumer | How it gets them |
+|---|---|
+| The workstation | `ros-fonts`, staged by `scripts/build-debs.sh` |
+| The console UI | copied in by its Docker build and by `scripts/dev-console.sh` |
+
+`ros-fonts` also installs `/etc/fonts/conf.d/60-ros-fonts.conf`, which is what
+makes Funnel Display *the system font* rather than just the GNOME interface
+font: it becomes the generic `sans-serif`, so applications that ask for a
+generic family - which is most of them, and every web page - get the brand face.
+
+Noto and DejaVu stay behind it deliberately. Funnel Display covers Latin and
+Cyrillic; without a fallback, anything outside that coverage would render as
+boxes instead of simply in another font.
+
+The same file defines two role aliases:
+
+| Ask fontconfig for | You get |
+|---|---|
+| `ROS UI` | Funnel Display |
+| `ROS Display` | Space Grotesk |
+
+ROS applications should ask for the role, not the family. Changing the brand
+font then means editing one file instead of rebuilding every application.
+
+In dconf the font is set by name, because GNOME stores a resolved font
+description rather than a role:
+
+```ini
+[org/gnome/desktop/interface]
+font-name='Funnel Display 11'
+document-font-name='Funnel Display 11'
+
+[org/gnome/desktop/wm/preferences]
+titlebar-font='Funnel Display SemiBold 11'
+```
+
+To change the brand font: drop the new file in `branding/fonts/`, update
+`60-ros-fonts.conf` and the three dconf keys above, then `make packages`.
 
 ## The palette
 
@@ -56,13 +103,13 @@ is the part that trips people up.
 color-scheme='prefer-dark'      # a string needs its own quotes
 accent-color='blue'
 show-battery-percentage=true    # a boolean does not
-font-name='Inter 11'
+font-name='Funnel Display 11'
 
 [org/gnome/desktop/session]
 idle-delay=uint32 600           # this key is a uint32, and says so
 
 [org/gnome/shell]
-favorite-apps=['firefox-esr.desktop', 'org.gnome.Nautilus.desktop']
+favorite-apps=['org.gnome.Nautilus.desktop', 'org.gnome.TextEditor.desktop']
 ```
 
 To find the key for something you changed in the GNOME UI:

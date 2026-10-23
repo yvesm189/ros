@@ -10,7 +10,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="$(cat "${ROOT}/VERSION")"
 OUT="${ROOT}/out/packages"
-PACKAGES=(ros-branding ros-agent ros-desktop-base)
+PACKAGES=(ros-fonts ros-branding ros-agent ros-desktop-base)
 BUILDER_IMAGE="${ROS_BUILDER_IMAGE:-debian:trixie-slim}"
 
 if ! command -v dpkg-deb >/dev/null 2>&1; then
@@ -37,6 +37,17 @@ for pkg in "${PACKAGES[@]}"; do
 
     # Version is kept in one place (VERSION) and substituted at build time.
     sed -i "s/@VERSION@/${VERSION}/g" "${dst}/DEBIAN/control"
+
+    # The typefaces live in branding/fonts and are staged in here, so that the
+    # repository holds exactly one copy of each font rather than one per
+    # consumer. The staged copies are gitignored inside the package tree.
+    if [ "${pkg}" = "ros-fonts" ]; then
+        cp "${ROOT}/branding/fonts"/*.ttf "${dst}/usr/share/fonts/truetype/ros/"
+        cp "${ROOT}/branding/fonts"/OFL-*.txt "${dst}/usr/share/doc/ros-fonts/"
+        cp "${ROOT}/branding/fonts/README.md" "${dst}/usr/share/doc/ros-fonts/"
+        rm -f "${dst}/usr/share/fonts/truetype/ros/.gitignore" \
+              "${dst}/usr/share/doc/ros-fonts/.gitignore"
+    fi
 
     # Everything a package ships under /etc is a conffile: dpkg then leaves a
     # locally modified policy file alone on upgrade instead of silently

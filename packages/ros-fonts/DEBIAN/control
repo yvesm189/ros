@@ -1,0 +1,17 @@
+Package: ros-fonts
+Version: @VERSION@
+Section: fonts
+Priority: optional
+Architecture: all
+Depends: fontconfig
+Recommends: fonts-noto-core, fonts-dejavu-core
+Maintainer: ROS Project <yvesm189@users.noreply.github.com>
+Homepage: https://github.com/yvesm189/ros
+Description: ROS brand typefaces
+ Funnel Display, the ROS interface font, and Space Grotesk for display text,
+ together with the fontconfig rules that make Funnel Display the generic
+ sans-serif on a ROS workstation.
+ .
+ Both are variable fonts under the SIL Open Font License 1.1. They cover Latin
+ and Cyrillic; Noto and DejaVu remain behind them so that text outside that
+ coverage still renders.

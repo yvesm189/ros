@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Without this the fonts are on disk but invisible to every application.
+        if command -v fc-cache >/dev/null 2>&1; then
+            fc-cache -f >/dev/null 2>&1 || true
+        fi
+        ;;
+esac
+
+exit 0

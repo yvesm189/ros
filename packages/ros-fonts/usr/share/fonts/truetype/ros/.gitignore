@@ -1,0 +1,3 @@
+# Font files are staged here from branding/fonts/ by scripts/build-debs.sh so
+# that the repository keeps exactly one copy of each typeface.
+*.ttf

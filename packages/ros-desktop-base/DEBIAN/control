@@ -3,12 +3,11 @@ Version: @VERSION@
 Section: metapackages
 Priority: optional
 Architecture: all
-Depends: ros-branding (= @VERSION@), ros-agent (= @VERSION@),
+Depends: ros-branding (= @VERSION@), ros-agent (= @VERSION@), ros-fonts (= @VERSION@),
  gnome-core, gdm3, gnome-control-center, gnome-tweaks, dconf-cli,
  gnome-shell-extension-dashtodock, gnome-shell-extension-appindicator,
- fonts-inter, fonts-noto-core, network-manager-gnome
-Recommends: firefox-esr, libreoffice-writer, libreoffice-calc, libreoffice-impress,
- cups, system-config-printer, simple-scan, flatpak
+ fonts-noto-core, network-manager-gnome
+Recommends: cups, system-config-printer, simple-scan, flatpak
 Maintainer: ROS Project <yvesm189@users.noreply.github.com>
 Homepage: https://github.com/yvesm189/ros
 Description: ROS desktop (metapackage)

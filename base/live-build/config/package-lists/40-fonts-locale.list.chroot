@@ -1,8 +1,12 @@
 # Typography and language support.
-# ROS targets English / French / Kinyarwanda institutions, so the font stack has
-# to cover Latin-extended well and the locale list is generated at build time.
+# The interface font itself ships in ros-fonts, which is built from this
+# repository; what is listed here is the fallback coverage behind it, because
+# Funnel Display covers Latin and Cyrillic only.
+#
+# ROS targets English / French / Kinyarwanda institutions, so the fallback
+# stack has to cover Latin-extended well and the locale list is generated at
+# build time.
 locales
-fonts-inter
 fonts-cantarell
 fonts-noto-core
 fonts-noto-color-emoji

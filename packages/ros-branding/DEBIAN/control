@@ -3,8 +3,8 @@ Version: @VERSION@
 Section: misc
 Priority: optional
 Architecture: all
-Depends: dconf-cli, dconf-gsettings-backend, librsvg2-common
-Recommends: fonts-inter, plymouth, gnome-shell-extension-dashtodock, gnome-shell-extension-appindicator
+Depends: dconf-cli, dconf-gsettings-backend, librsvg2-common, ros-fonts (= @VERSION@)
+Recommends: plymouth, gnome-shell-extension-dashtodock, gnome-shell-extension-appindicator
 Maintainer: ROS Project <yvesm189@users.noreply.github.com>
 Homepage: https://github.com/yvesm189/ros
 Description: ROS desktop identity and default policy

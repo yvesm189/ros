@@ -8,6 +8,6 @@ disable-restart-buttons=false
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
 accent-color='blue'
-font-name='Inter 11'
+font-name='Funnel Display 11'
 clock-format='24h'
 clock-show-weekday=true

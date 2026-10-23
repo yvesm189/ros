@@ -20,6 +20,9 @@ __pycache__/
 venv/
 *.egg-info/
 
+# Fonts staged out of branding/fonts at build time
+management/console/app/static/fonts/
+
 # Local state
 management/console/*.db
 management/console/data/

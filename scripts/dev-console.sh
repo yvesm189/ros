@@ -16,6 +16,12 @@ if [ ! -d "${VENV}" ]; then
     "${VENV}/bin/pip" install --quiet -r "${CONSOLE}/requirements.txt"
 fi
 
+# The Docker build stages these; the virtualenv path has to do it too, or the
+# console falls back to a system font and stops looking like ROS.
+mkdir -p "${CONSOLE}/app/static/fonts"
+cp "${ROOT}/branding/fonts/FunnelDisplay[wght].ttf" "${CONSOLE}/app/static/fonts/funnel-display.ttf"
+cp "${ROOT}/branding/fonts/SpaceGrotesk[wght].ttf" "${CONSOLE}/app/static/fonts/space-grotesk.ttf"
+
 export ROS_DB_PATH="${ROS_DB_PATH:-${CONSOLE}/ros.db}"
 export ROS_ADMIN_PASSWORD="${ROS_ADMIN_PASSWORD:-ros-admin}"
 
