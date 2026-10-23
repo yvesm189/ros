@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         lightdm lightdm-gtk-greeter \
         gnome-themes-extra \
         gnome-session \
+        gnome-session-xsession \
         gnome-shell \
         gnome-settings-daemon \
         gnome-control-center \
@@ -66,7 +67,7 @@ RUN systemctl mask \
 # The ROS packages, exactly as a workstation gets them.
 COPY out/packages/ros-fonts_*.deb out/packages/ros-branding_*.deb \
      out/packages/ros-agent_*.deb out/packages/ros-store_*.deb \
-     out/packages/ros-app-defaults_*.deb /tmp/ros/
+     out/packages/ros-lockdown_*.deb out/packages/ros-app-defaults_*.deb /tmp/ros/
 RUN apt-get update \
     && apt-get install -y --no-install-recommends /tmp/ros/*.deb \
     && rm -rf /tmp/ros /var/lib/apt/lists/*
