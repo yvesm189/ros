@@ -50,6 +50,28 @@ class CompileTests(unittest.TestCase):
         )
 
 
+class BrandDefaultTests(unittest.TestCase):
+    """The defaults are the brand, so they are worth pinning."""
+
+    def test_interface_font_is_the_brand_font(self):
+        compiled = policy.compile_policy("Default", 1, policy.default_policy())
+        interface = compiled["dconf"]["org/gnome/desktop/interface"]
+        self.assertEqual(interface["font-name"], "'Funnel Display 11'")
+        self.assertEqual(interface["document-font-name"], "'Funnel Display 11'")
+
+    def test_no_third_party_applications_are_pinned(self):
+        favourites = policy.DEFAULT_SETTINGS["favorites"]
+        for unwanted in ("firefox", "libreoffice", "thunderbird", "chrome"):
+            self.assertFalse(
+                any(unwanted in app.lower() for app in favourites),
+                "%s should not be pinned: ROS ships its own applications" % unwanted,
+            )
+
+    def test_pinned_applications_look_like_desktop_ids(self):
+        for app in policy.DEFAULT_SETTINGS["favorites"]:
+            self.assertTrue(app.endswith(".desktop"), app)
+
+
 class FormTests(unittest.TestCase):
     def test_invalid_choices_fall_back_to_defaults(self):
         result = policy.policy_from_form(

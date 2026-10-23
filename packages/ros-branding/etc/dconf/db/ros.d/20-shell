@@ -2,7 +2,10 @@
 [org/gnome/shell]
 disable-user-extensions=false
 enabled-extensions=['dash-to-dock@micxgx.gmail.com', 'appindicatorsupport@rgcjonas.gmail.com']
-favorite-apps=['firefox-esr.desktop', 'org.gnome.Nautilus.desktop', 'libreoffice-writer.desktop', 'libreoffice-calc.desktop', 'org.gnome.Settings.desktop', 'org.gnome.Console.desktop']
+# ROS ships no third-party browser or office suite: those applications are
+# being built as ROS applications from open source upstreams, and will be
+# pinned here as they land. Until then the dock holds the system tools only.
+favorite-apps=['org.gnome.Nautilus.desktop', 'org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'org.gnome.Settings.desktop']
 
 [org/gnome/shell/extensions/dash-to-dock]
 dock-position='BOTTOM'

@@ -77,7 +77,7 @@ costs one small request per sync.
       "color-scheme": "'prefer-light'"
     },
     "org/gnome/shell": {
-      "favorite-apps": "['firefox-esr.desktop', 'org.gnome.Nautilus.desktop']"
+      "favorite-apps": "['org.gnome.Nautilus.desktop', 'org.gnome.TextEditor.desktop']"
     }
   },
   "locks": ["/org/gnome/desktop/background/picture-uri"]

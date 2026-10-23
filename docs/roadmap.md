@@ -5,7 +5,8 @@ What exists, what is next, and what is deliberately not being built yet.
 ## 0.1.0 — now
 
 - Debian 13 + GNOME image built reproducibly from this repository
-- ROS identity: wallpapers, logo, boot splash, accent colours, login screen
+- ROS identity: brand typeface as the system font, wallpapers, logo, boot
+  splash, accent colours, login screen
 - Default desktop policy as a system dconf database, with locks
 - `ros-agent`: enroll, heartbeat, inventory, apply policy, report result
 - ROS Console: devices, policy groups, activity log, policy editor with an
@@ -23,6 +24,18 @@ What exists, what is next, and what is deliberately not being built yet.
   kept. They should be, with a diff and a one-click revert.
 - **Software inventory.** Which packages, which versions, across the fleet.
 - **A real ISO in CI on every tag**, with the checksum published.
+
+## ROS applications — the long thread
+
+ROS ships no third-party browser or office suite, because a workstation that
+boots into ROS branding and then opens somebody else's browser is two products
+pretending to be one. Those applications are being built on open source
+upstreams with the ROS interface; the reasoning, the ordering and what makes an
+application a ROS application rather than a rebranded upstream are in
+[applications.md](applications.md).
+
+The browser comes first - it is where the day is spent - and the honest first
+version is a themed build with an enterprise policy file, not a fork.
 
 ## 0.3 — beyond the desktop
 

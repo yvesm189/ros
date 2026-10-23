@@ -22,7 +22,7 @@ DOCK_POSITIONS = ["BOTTOM", "LEFT", "RIGHT", "TOP"]
 DEFAULT_SETTINGS: Dict[str, Any] = {
     "color_scheme": "prefer-dark",
     "accent_color": "blue",
-    "font_name": "Inter 11",
+    "font_name": "Funnel Display 11",
     "clock_format": "24h",
     "show_battery_percentage": True,
     "wallpaper_light": "file:///usr/share/backgrounds/ros/ros-light.svg",
@@ -30,11 +30,12 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "dock_position": "BOTTOM",
     "dock_fixed": False,
     "dock_icon_size": 40,
+    # ROS ships no third-party browser or office suite; the ROS applications
+    # that replace them get pinned here as they land.
     "favorites": [
-        "firefox-esr.desktop",
         "org.gnome.Nautilus.desktop",
-        "libreoffice-writer.desktop",
-        "libreoffice-calc.desktop",
+        "org.gnome.TextEditor.desktop",
+        "org.gnome.Console.desktop",
         "org.gnome.Settings.desktop",
     ],
     "extensions": [

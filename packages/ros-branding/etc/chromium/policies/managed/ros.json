@@ -1,8 +1,0 @@
-{
-  "MetricsReportingEnabled": false,
-  "SearchSuggestEnabled": false,
-  "PasswordManagerEnabled": false,
-  "BackgroundModeEnabled": false,
-  "DefaultBrowserSettingEnabled": false,
-  "HomepageLocation": "https://github.com/yvesm189/ros"
-}

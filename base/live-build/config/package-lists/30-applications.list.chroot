@@ -1,11 +1,10 @@
-# Day-to-day applications for an office workstation.
-firefox-esr
-libreoffice-writer
-libreoffice-calc
-libreoffice-impress
-libreoffice-gnome
-libreoffice-l10n-fr
-thunderbird
+# Utilities an office workstation needs regardless of which applications it runs.
+#
+# ROS deliberately ships no third-party browser or office suite. The browser,
+# the document tools and the rest of the basic application set are being built
+# as ROS applications on open source upstreams and carry ROS's own interface,
+# so pulling in Firefox and LibreOffice here would only mean shipping something
+# that has to be replaced. See docs/applications.md.
 simple-scan
 cups
 cups-filters
