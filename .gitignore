@@ -1,0 +1,29 @@
+# Build output
+out/
+build/
+*.iso
+*.iso.sha256
+*.deb
+*.buildinfo
+*.changes
+base/live-build/.build/
+base/live-build/cache/
+base/live-build/chroot/
+base/live-build/binary/
+base/live-build/local/
+base/live-build/config/includes.chroot.generated/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Local state
+management/console/*.db
+management/console/data/
+*.log
+
+# OS noise
+.DS_Store
