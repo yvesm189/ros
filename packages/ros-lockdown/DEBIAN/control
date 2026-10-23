@@ -1,0 +1,20 @@
+Package: ros-lockdown
+Version: @VERSION@
+Section: admin
+Priority: optional
+Architecture: all
+Depends: polkitd, pkexec, ros-agent (= @VERSION@)
+Maintainer: ROS Project <yvesm189@users.noreply.github.com>
+Homepage: https://github.com/yvesm189/ros
+Description: ROS software installation policy
+ Makes Isoko, the ROS Store, the only way software is installed on a
+ workstation: PackageKit, apt and Flatpak's own authorisations are refused for
+ anyone who is not an administrator, while the store needs no password at all.
+ .
+ The model is the one a phone uses - install freely, but only from a catalogue
+ the organisation curates. Trust sits in the curation rather than in the user,
+ and the agent behind the store accepts a catalogue slug rather than a package
+ name, so installing from the store cannot become installing anything.
+ .
+ Also provides ros-run, which executes commands the management console has
+ explicitly approved and nothing else.

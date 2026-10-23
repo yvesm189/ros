@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+    rm -f /etc/ros/commands.json
+    if [ -d /run/systemd/system ]; then
+        systemctl try-reload-or-restart polkit.service 2>/dev/null || true
+    fi
+fi
+
+exit 0

@@ -9,6 +9,10 @@ gnome-control-center
 gnome-tweaks
 gnome-system-monitor
 gnome-disk-utility
-gnome-software
-gnome-software-plugin-flatpak
+# No gnome-software: Isoko is the way software is installed on ROS, and two
+# stores on one desktop is two answers to the same question.
+#
+# flatpak itself stays, because the management plane installs flatpak-sourced
+# applications with it - but no remote is configured by default; see
+# packages/ros-lockdown.
 flatpak

@@ -10,7 +10,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="$(cat "${ROOT}/VERSION")"
 OUT="${ROOT}/out/packages"
-PACKAGES=(ros-fonts ros-branding ros-agent ros-store ros-app-defaults ros-desktop-base)
+PACKAGES=(ros-fonts ros-branding ros-agent ros-store ros-lockdown ros-app-defaults ros-desktop-base)
 BUILDER_IMAGE="${ROS_BUILDER_IMAGE:-debian:trixie-slim}"
 
 if ! command -v dpkg-deb >/dev/null 2>&1; then

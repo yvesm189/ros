@@ -1,8 +1,0 @@
-#!/bin/sh
-# Flathub is how ROS ships applications that need to move faster than Debian
-# stable. A managed deployment is expected to replace this with an internal
-# remote; see docs/management.md.
-set -e
-
-flatpak remote-add --if-not-exists flathub \
-    https://dl.flathub.org/repo/flathub.flatpakrepo || true

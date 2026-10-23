@@ -4,7 +4,7 @@ Section: metapackages
 Priority: optional
 Architecture: all
 Depends: ros-branding (= @VERSION@), ros-agent (= @VERSION@), ros-fonts (= @VERSION@),
- ros-store (= @VERSION@), ros-app-defaults (= @VERSION@),
+ ros-store (= @VERSION@), ros-lockdown (= @VERSION@), ros-app-defaults (= @VERSION@),
  gnome-core, gdm3, gnome-control-center, gnome-tweaks, dconf-cli,
  gnome-shell-extension-dashtodock, gnome-shell-extension-appindicator,
  fonts-noto-core, network-manager-gnome

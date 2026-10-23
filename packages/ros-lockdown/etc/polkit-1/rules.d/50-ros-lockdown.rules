@@ -1,0 +1,53 @@
+// ROS lockdown.
+//
+// On a ROS workstation, software is installed through Isoko - the ROS Store -
+// from a catalogue the organisation curates. Nothing else installs software.
+//
+// The model is the one a phone uses: the person at the keyboard can install
+// freely, but only from the catalogue. The trust sits in the curation, not in
+// the user, which is why the store needs no password and PackageKit is refused
+// outright. The agent behind the store accepts a catalogue slug and never a
+// package name, so "install from the store" cannot become "install anything".
+
+polkit.addRule(function (action, subject) {
+    // --- the store, and management-approved commands ----------------------
+    // Allowed without a password for the people who use this machine.
+    //
+    // Membership of ros-users is the test rather than subject.local &&
+    // subject.active, because GNOME 48 runs the shell and everything launched
+    // from it as systemd user units with no XDG_SESSION_ID. polkit cannot tie
+    // those processes back to the seat session, so a session-based rule would
+    // prompt for a password on every install - which is precisely the thing
+    // this design is trying not to do. The session test is kept as well, for
+    // processes that do carry a session.
+    //
+    // The capability this grants is bounded on the other side: the agent takes
+    // a catalogue slug or an approved command name, never a package name or a
+    // command line, so the worst it can do is what the organisation published.
+    if (action.id == "rw.ros.store.manage-applications" ||
+        action.id == "rw.ros.commands.run") {
+        if (subject.isInGroup("ros-users") || (subject.local && subject.active)) {
+            return polkit.Result.YES;
+        }
+    }
+});
+
+polkit.addRule(function (action, subject) {
+    // --- every other way of installing software ---------------------------
+    // Refused for anyone who is not an administrator. An administrator still
+    // gets the normal prompt; this removes the path, not the capability.
+    var blocked = [
+        "org.freedesktop.packagekit.",
+        "org.debian.apt.",
+        "org.freedesktop.Flatpak."
+    ];
+
+    for (var i = 0; i < blocked.length; i++) {
+        if (action.id.indexOf(blocked[i]) === 0) {
+            if (subject.isInGroup("ros-admins") || subject.isInGroup("sudo")) {
+                return polkit.Result.AUTH_ADMIN;
+            }
+            return polkit.Result.NO;
+        }
+    }
+});

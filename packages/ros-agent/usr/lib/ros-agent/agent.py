@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import configparser
+import hashlib
 import json
 import logging
 import os
@@ -30,7 +31,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 AGENT_VERSION = "0.1.0"
 
@@ -43,6 +44,19 @@ POLICY_CACHE_PATH = os.path.join(STATE_DIR, "policy.json")
 # directory where that person can actually read it.
 CATALOGUE_CACHE_DIR = os.environ.get("ROS_CATALOGUE_DIR", "/var/cache/ros-agent")
 CATALOGUE_CACHE_PATH = os.path.join(CATALOGUE_CACHE_DIR, "catalogue.json")
+
+# Commands the console has approved for this machine. ros-run resolves a name
+# against this file; nothing outside it is ever executed.
+COMMANDS_PATH = os.environ.get("ROS_COMMANDS", "/etc/ros/commands.json")
+
+# Wait rather than fail when something else holds the dpkg lock. Unattended
+# upgrades, a user's own apt run or a previous sync can all be mid-flight, and
+# a fleet member that gives up on the first contended lock never catches up.
+APT_LOCK_TIMEOUT = os.environ.get("ROS_APT_LOCK_TIMEOUT", "300")
+APT_OPTIONS = ["-o", "DPkg::Lock::Timeout=" + APT_LOCK_TIMEOUT]
+
+# Where a downloaded application bundle is staged before it is installed.
+BUNDLE_DIR = os.environ.get("ROS_BUNDLE_DIR", "/var/cache/ros-agent/bundles")
 
 # Where the agent writes the policy it receives. 50- sorts after the defaults
 # shipped by ros-branding (00-40), so the fleet can override the image without
@@ -253,7 +267,7 @@ def render_dconf_keyfile(policy: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def apply_policy(policy: Dict[str, Any]) -> Dict[str, Any]:
+def apply_policy(policy: Dict[str, Any], config: Optional[Config] = None) -> Dict[str, Any]:
     os.makedirs(os.path.join(DCONF_DB_DIR, "locks"), exist_ok=True)
 
     keyfile = os.path.join(DCONF_DB_DIR, MANAGED_KEYFILE)
@@ -285,9 +299,14 @@ def apply_policy(policy: Dict[str, Any]) -> Dict[str, Any]:
 
     detail = {"sections": len(policy.get("dconf", {})), "locks": len(locks)}
 
+    sync_user_group()
+    commands = apply_commands(policy)
+    if commands:
+        detail["commands"] = commands
+
     # Settings first, applications second: a machine should look right even if
     # a package server is unreachable.
-    applications = apply_applications(policy)
+    applications = apply_applications(policy, config)
     if applications["installed"] or applications["failed"]:
         detail["applications"] = applications
 
@@ -317,16 +336,74 @@ def is_installed(app: Dict[str, Any]) -> bool:
     return "install ok installed" in result.stdout
 
 
-def install_application(app: Dict[str, Any]) -> None:
+def download_bundle(config: Config, app: Dict[str, Any]) -> str:
+    """Fetch an uploaded package from the console and check it hasn't changed.
+
+    The checksum is the point: the file travels over the same channel as the
+    policy that asked for it, so a download that does not match what the
+    console published is never installed.
+    """
+    identity = read_identity() or {}
+    token = identity.get("token")
+    device_id = identity.get("device_id")
+    if not token or not device_id:
+        raise RuntimeError("cannot download %s: this machine is not enrolled" % app["name"])
+
+    config.server = (identity.get("server") or config.server).rstrip("/")
+    url = "%s/api/v1/applications/%s/bundle" % (config.server, app["slug"])
+    request_obj = urllib.request.Request(url)
+    request_obj.add_header("Authorization", "Bearer %s" % token)
+    request_obj.add_header("User-Agent", "ros-agent/%s" % AGENT_VERSION)
+
+    os.makedirs(BUNDLE_DIR, exist_ok=True)
+    filename = os.path.basename(app.get("bundle_filename") or (app["slug"] + ".deb"))
+    path = os.path.join(BUNDLE_DIR, filename)
+
+    digest = hashlib.sha256()
+    try:
+        with urllib.request.urlopen(request_obj, timeout=max(config.timeout, 120)) as response:
+            with open(path, "wb") as handle:
+                while True:
+                    chunk = response.read(65536)
+                    if not chunk:
+                        break
+                    digest.update(chunk)
+                    handle.write(chunk)
+    except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+        raise RuntimeError("downloading %s failed: %s" % (app["name"], exc))
+
+    expected = (app.get("bundle_sha256") or "").lower()
+    if expected and digest.hexdigest() != expected:
+        os.unlink(path)
+        raise RuntimeError(
+            "checksum mismatch for %s: the console published %s, the download was %s"
+            % (app["name"], expected[:16], digest.hexdigest()[:16])
+        )
+
+    return path
+
+
+def install_application(app: Dict[str, Any], config: Optional[Config] = None) -> None:
     source = app.get("source", "apt")
     reference = app["reference"]
 
-    if source == "flatpak":
+    if source == "bundle":
+        if config is None:
+            raise RuntimeError("a bundle install needs a server to download from")
+        path = download_bundle(config, app)
+        if path.endswith(".flatpak"):
+            command = ["flatpak", "install", "-y", "--noninteractive", "--bundle", path]
+        else:
+            # `apt-get install ./file.deb` rather than `dpkg -i`: apt resolves
+            # the dependencies, dpkg only complains about them.
+            command = ["apt-get", "install", "-y",
+                       "--no-install-recommends"] + APT_OPTIONS + [path]
+    elif source == "flatpak":
         command = ["flatpak", "install", "-y", "--noninteractive", reference]
     else:
         command = [
-            "apt-get", "install", "-y", "--no-install-recommends", reference
-        ]
+            "apt-get", "install", "-y", "--no-install-recommends"
+        ] + APT_OPTIONS + [reference]
 
     environment = dict(os.environ, DEBIAN_FRONTEND="noninteractive")
     result = subprocess.run(
@@ -340,7 +417,7 @@ def install_application(app: Dict[str, Any]) -> None:
         )
 
 
-def apply_applications(policy: Dict[str, Any]) -> Dict[str, Any]:
+def apply_applications(policy: Dict[str, Any], config: Optional[Config] = None) -> Dict[str, Any]:
     """Install the applications a policy assigns, and only those.
 
     Nothing is ever removed here. A policy that stops listing an application
@@ -352,13 +429,13 @@ def apply_applications(policy: Dict[str, Any]) -> Dict[str, Any]:
     installed, failed, already = [], [], []
 
     missing = [app for app in applications if not is_installed(app)]
-    if any(app.get("source", "apt") == "apt" for app in missing):
+    if any(app.get("source", "apt") in ("apt", "bundle") for app in missing):
         # A freshly imaged machine has no package lists at all - the image build
         # throws them away to keep the ISO small - and a machine that has been
         # off for a month has stale ones. Refresh once per run, not per package.
         log.info("refreshing package lists")
         result = subprocess.run(
-            ["apt-get", "update"],
+            ["apt-get", "update"] + APT_OPTIONS,
             capture_output=True, text=True, check=False,
             env=dict(os.environ, DEBIAN_FRONTEND="noninteractive"), timeout=600,
         )
@@ -375,7 +452,7 @@ def apply_applications(policy: Dict[str, Any]) -> Dict[str, Any]:
                 already.append(name)
                 continue
             log.info("installing %s (%s:%s)", name, app.get("source"), app.get("reference"))
-            install_application(app)
+            install_application(app, config)
             installed.append(name)
         except Exception as exc:
             log.error("%s", exc)
@@ -415,6 +492,61 @@ def fetch_catalogue(config: Config) -> Dict[str, Any]:
             return json.load(handle)
     except (OSError, ValueError):
         return {"applications": []}
+
+
+def sync_user_group() -> None:
+    """Keep ros-users in step with the human accounts on this machine.
+
+    Membership is what lets somebody install from the catalogue without a
+    password. New accounts have to join, or the store stops working for them
+    with a password prompt nobody can answer.
+    """
+    try:
+        import grp
+        import pwd
+
+        members = set(grp.getgrnam("ros-users").gr_mem)
+    except (ImportError, KeyError):
+        return  # ros-lockdown is not installed; nothing to keep in step with
+
+    for entry in pwd.getpwall():
+        if 1000 <= entry.pw_uid < 65534 and entry.pw_name not in members:
+            subprocess.run(
+                ["adduser", entry.pw_name, "ros-users"],
+                capture_output=True, check=False, timeout=30,
+            )
+            log.info("added %s to ros-users", entry.pw_name)
+
+
+def apply_commands(policy: Dict[str, Any]) -> int:
+    """Write the list of commands this machine is allowed to run.
+
+    ros-run resolves a name against this file and the agent executes nothing
+    that is not in it, so the list is the whole of what an unprivileged user
+    can do with elevation on this machine.
+    """
+    commands = policy.get("commands") or []
+    payload = {
+        "_comment": "Managed by ros-agent from console policy. Local edits are overwritten.",
+        "policy": policy.get("name", "unnamed"),
+        "revision": policy.get("revision", 0),
+        "commands": commands,
+    }
+    os.makedirs(os.path.dirname(COMMANDS_PATH), exist_ok=True)
+    tmp = COMMANDS_PATH + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, COMMANDS_PATH)
+    return len(commands)
+
+
+def read_commands() -> List[Dict[str, Any]]:
+    try:
+        with open(COMMANDS_PATH, "r", encoding="utf-8") as handle:
+            return json.load(handle).get("commands", [])
+    except (OSError, ValueError):
+        return []
 
 
 def cache_policy(policy: Dict[str, Any]) -> None:
@@ -508,7 +640,7 @@ def cmd_sync(config: Config, args: argparse.Namespace) -> int:
         return 0
 
     try:
-        detail = apply_policy(policy)
+        detail = apply_policy(policy, config)
         status = "applied"
     except Exception as exc:  # reported to the server, then re-raised to the log
         detail = {"error": str(exc)}
@@ -536,7 +668,7 @@ def cmd_apply(config: Config, args: argparse.Namespace) -> int:
     if not policy:
         log.error("no cached policy at %s; run `ros-agent sync` first", POLICY_CACHE_PATH)
         return 2
-    apply_policy(policy)
+    apply_policy(policy, config)
     return 0
 
 
@@ -584,7 +716,7 @@ def cmd_app(config: Config, args: argparse.Namespace) -> int:
     if source == "flatpak":
         command = ["flatpak", "uninstall", "-y", "--noninteractive", reference]
     else:
-        command = ["apt-get", "remove", "-y", reference]
+        command = ["apt-get", "remove", "-y"] + APT_OPTIONS + [reference]
     result = subprocess.run(
         command, capture_output=True, text=True, check=False,
         env=dict(os.environ, DEBIAN_FRONTEND="noninteractive"), timeout=1800,
@@ -595,6 +727,55 @@ def cmd_app(config: Config, args: argparse.Namespace) -> int:
         return 1
     log.info("removed %s", wanted["name"])
     return 0
+
+
+def cmd_run(config: Config, args: argparse.Namespace) -> int:
+    """Run one command from the management-approved list.
+
+    This is what ros-run calls through pkexec. It takes a name, resolves it
+    against /etc/ros/commands.json, and executes the argv the console wrote
+    there - never anything assembled from what the caller typed.
+    """
+    commands = read_commands()
+
+    if args.list or not args.name:
+        if not commands:
+            print("No commands have been approved for this machine.")
+            return 0
+        print("Commands this machine is allowed to run:\n")
+        for command in commands:
+            print("  %-18s %s" % (command.get("name", "?"),
+                                  command.get("description", "")))
+        return 0
+
+    wanted = None
+    for command in commands:
+        if command.get("name") == args.name:
+            wanted = command
+            break
+
+    if wanted is None:
+        log.error("'%s' is not an approved command on this machine", args.name)
+        return 2
+
+    argv = wanted.get("argv") or []
+    if not argv:
+        log.error("'%s' has no command to run", args.name)
+        return 2
+
+    log.info("running approved command '%s'", args.name)
+    try:
+        result = subprocess.run(argv, check=False, timeout=wanted.get("timeout", 900))
+    except FileNotFoundError:
+        # The console approved something this machine does not have. That is a
+        # policy mistake, and it should read like one rather than like a crash.
+        log.error("'%s' is approved but %s is not installed on this machine",
+                  args.name, argv[0])
+        return 127
+    except subprocess.TimeoutExpired:
+        log.error("'%s' did not finish in time", args.name)
+        return 124
+    return result.returncode
 
 
 def cmd_status(config: Config, args: argparse.Namespace) -> int:
@@ -610,6 +791,7 @@ def cmd_status(config: Config, args: argparse.Namespace) -> int:
                 "device_id": identity.get("device_id"),
                 "policy_revision": policy.get("revision", 0),
                 "policy_name": policy.get("name"),
+                "approved_commands": [c.get("name") for c in read_commands()],
                 "inventory": collect_inventory(),
             },
             indent=2,
@@ -644,6 +826,11 @@ def main(argv=None) -> int:
         "catalogue", help="print the application catalogue, with install state"
     )
     catalogue.set_defaults(func=cmd_catalogue)
+
+    run_cmd = sub.add_parser("run", help="run a command the console has approved")
+    run_cmd.add_argument("name", nargs="?")
+    run_cmd.add_argument("--list", action="store_true", help="list approved commands")
+    run_cmd.set_defaults(func=cmd_run)
 
     app_cmd = sub.add_parser("app", help="install or remove a catalogue application")
     app_cmd.add_argument("action", choices=["install", "remove"])

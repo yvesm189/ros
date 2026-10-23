@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/software/polkit/policyconfig-1.dtd">
+<policyconfig>
+
+  <vendor>ROS</vendor>
+  <vendor_url>https://github.com/yvesm189/ros</vendor_url>
+
+  <!--
+    Commands the management console has explicitly allowed. The agent will run
+    nothing that is not in the list it was given, so this authorisation is
+    bounded by what an administrator wrote down, not by what a user types.
+  -->
+  <action id="rw.ros.commands.run">
+    <description>Run a command the organisation has approved</description>
+    <message>Authentication is required to run an approved administrative command</message>
+    <icon_name>utilities-terminal</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/ros-agent</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+
+</policyconfig>

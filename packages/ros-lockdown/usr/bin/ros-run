@@ -1,0 +1,16 @@
+#!/bin/sh
+# Run a command the management console has approved.
+#
+#   ros-run              list what this machine is allowed to run
+#   ros-run <name>       run it
+#
+# The list comes from policy and lives in /etc/ros/commands.json. This wrapper
+# passes a name, never a command line: the agent resolves the name against that
+# file and runs nothing it does not find there.
+set -eu
+
+if [ $# -eq 0 ]; then
+    exec /usr/bin/ros-agent run --list
+fi
+
+exec pkexec /usr/bin/ros-agent run "$1"

@@ -1,0 +1,41 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Administrators are a group rather than a list, so that policy can
+        # move somebody in or out without touching these files.
+        if ! getent group ros-admins >/dev/null; then
+            addgroup --system ros-admins >/dev/null 2>&1 || true
+        fi
+
+        # The people who use this machine. Membership is what lets somebody
+        # install from the catalogue without a password; it grants nothing
+        # else. ros-agent keeps it in step with the accounts on the machine.
+        if ! getent group ros-users >/dev/null; then
+            addgroup --system ros-users >/dev/null 2>&1 || true
+        fi
+
+        # Read /etc/passwd directly rather than piping through awk: the quoting
+        # an awk program needs inside a maintainer script is a good way to ship
+        # a line that parses as something else entirely.
+        while IFS=: read -r account _ uid _rest; do
+            case "${uid}" in
+                ''|*[!0-9]*) continue ;;
+            esac
+            if [ "${uid}" -ge 1000 ] && [ "${uid}" -lt 65534 ]; then
+                adduser "${account}" ros-users >/dev/null 2>&1 || true
+            fi
+        done < /etc/passwd
+
+        chmod 0644 /etc/polkit-1/rules.d/50-ros-lockdown.rules || true
+        chmod 0644 /etc/ros/commands.json || true
+
+        # polkit re-reads rules.d on its own, but only once it is running.
+        if [ -d /run/systemd/system ]; then
+            systemctl try-reload-or-restart polkit.service 2>/dev/null || true
+        fi
+        ;;
+esac
+
+exit 0
