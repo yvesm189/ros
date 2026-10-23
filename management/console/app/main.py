@@ -13,20 +13,26 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import shutil
 import json
 import os
 import secrets
 import time
 from typing import Any, Dict, Optional
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import __version__, catalogue as catalogue_mod, db, policy as policy_mod
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Uploaded packages live beside the database so that one backup covers both.
+BUNDLE_DIR = os.environ.get(
+    "ROS_BUNDLE_DIR", os.path.join(os.path.dirname(os.path.abspath(db.DB_PATH)), "bundles")
+)
+MAX_BUNDLE_BYTES = int(os.environ.get("ROS_MAX_BUNDLE_MB", "512")) * 1024 * 1024
 ADMIN_PASSWORD = os.environ.get("ROS_ADMIN_PASSWORD", "ros-admin")
 SESSION_COOKIE = "ros_session"
 SESSION_MAX_AGE = 12 * 3600
@@ -87,6 +93,23 @@ def authenticate_device(request: Request, device_id: str) -> Dict[str, Any]:
         # caller should not be able to enumerate device IDs.
         raise HTTPException(status_code=401, detail="authentication failed")
     return dict(device)
+
+
+def authenticate_any_device(request: Request) -> Dict[str, Any]:
+    """Authenticate a bearer token without being told which device it is.
+
+    Used by the bundle download, where the agent is asking for a file rather
+    than for something about itself.
+    """
+    header = request.headers.get("authorization", "")
+    if not header.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="missing bearer token")
+    supplied = hash_token(header.split(" ", 1)[1].strip())
+
+    for row in db.query("SELECT * FROM devices"):
+        if hmac.compare_digest(row["token_hash"], supplied):
+            return dict(row)
+    raise HTTPException(status_code=401, detail="authentication failed")
 
 
 # --------------------------------------------------------------------------- #
@@ -188,7 +211,8 @@ def resolve_applications(stored: Dict[str, Any]) -> list:
         return []
     placeholders = ",".join("?" for _ in slugs)
     rows = db.query(
-        "SELECT slug, name, source, reference, desktop_id FROM applications"
+        "SELECT slug, name, source, reference, desktop_id, bundle_filename,"
+        " bundle_sha256 FROM applications"
         " WHERE published = 1 AND slug IN (%s) ORDER BY name" % placeholders,
         slugs,
     )
@@ -451,6 +475,8 @@ def group_page(request: Request, group_id: int, _: str = Depends(require_admin))
         keyfile=policy_mod.keyfile_preview(compiled),
         applications=apps,
         application_summary=policy_mod.application_summary(compiled),
+        commands=policy_mod.commands_to_text(stored.get("commands") or []),
+        command_summary=policy_mod.command_summary(compiled),
         accent_colors=policy_mod.ACCENT_COLORS,
         color_schemes=policy_mod.COLOR_SCHEMES,
         dock_positions=policy_mod.DOCK_POSITIONS,
@@ -579,10 +605,95 @@ def catalogue_api(request: Request) -> Dict[str, Any]:
     """
     rows = db.query(
         "SELECT slug, name, tagline, description, category, upstream, source,"
-        " reference, desktop_id, icon FROM applications"
+        " reference, desktop_id, icon, bundle_filename, bundle_sha256 FROM applications"
         " WHERE published = 1 ORDER BY category, name"
     )
     return {"applications": [dict(row) for row in rows]}
+
+
+@app.get("/api/v1/applications/{slug}/bundle")
+def download_bundle(slug: str, request: Request) -> Response:
+    """Serve an uploaded package to an enrolled machine.
+
+    Authenticated, unlike the catalogue: the catalogue is a shop window, this
+    is the software itself.
+    """
+    authenticate_any_device(request)
+    row = db.query_one(
+        "SELECT slug, bundle_filename FROM applications WHERE slug = ? AND published = 1",
+        (slug,),
+    )
+    if not row or not row["bundle_filename"]:
+        raise HTTPException(status_code=404, detail="no bundle for that application")
+
+    path = os.path.join(BUNDLE_DIR, slug, row["bundle_filename"])
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="the bundle file is missing")
+
+    return FileResponse(
+        path,
+        media_type="application/octet-stream",
+        filename=row["bundle_filename"],
+    )
+
+
+@app.post("/applications/{application_id}/bundle")
+async def upload_bundle(
+    request: Request,
+    application_id: int,
+    bundle: UploadFile = File(...),
+    _: str = Depends(require_admin),
+) -> Response:
+    """Take a .deb or .flatpak upload and publish it as this application."""
+    row = db.query_one("SELECT slug, name FROM applications WHERE id = ?", (application_id,))
+    if not row:
+        raise HTTPException(status_code=404, detail="no such application")
+
+    filename = os.path.basename(bundle.filename or "")
+    if not filename.endswith((".deb", ".flatpak")):
+        db.log_event("catalogue", "rejected upload for '%s': not a .deb or .flatpak" % row["name"])
+        return RedirectResponse("/applications", status_code=303)
+
+    target_dir = os.path.join(BUNDLE_DIR, row["slug"])
+    os.makedirs(target_dir, exist_ok=True)
+    path = os.path.join(target_dir, filename)
+
+    digest = hashlib.sha256()
+    size = 0
+    with open(path, "wb") as handle:
+        while True:
+            chunk = await bundle.read(1024 * 1024)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > MAX_BUNDLE_BYTES:
+                handle.close()
+                os.unlink(path)
+                db.log_event(
+                    "catalogue",
+                    "rejected upload for '%s': larger than %d MB"
+                    % (row["name"], MAX_BUNDLE_BYTES // (1024 * 1024)),
+                )
+                return RedirectResponse("/applications", status_code=303)
+            digest.update(chunk)
+            handle.write(chunk)
+
+    # One bundle per application: an older upload would otherwise sit there
+    # being served to nobody while taking up room.
+    for stale in os.listdir(target_dir):
+        if stale != filename:
+            os.unlink(os.path.join(target_dir, stale))
+
+    db.execute(
+        "UPDATE applications SET source = 'bundle', bundle_filename = ?,"
+        " bundle_sha256 = ?, bundle_size = ?, updated_at = ? WHERE id = ?",
+        (filename, digest.hexdigest(), size, int(time.time()), application_id),
+    )
+    db.log_event(
+        "catalogue",
+        "uploaded %s (%d KB) for '%s'" % (filename, size // 1024, row["name"]),
+    )
+    return RedirectResponse("/applications", status_code=303)
 
 
 @app.get("/events", response_class=HTMLResponse)

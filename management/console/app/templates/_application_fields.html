@@ -46,14 +46,19 @@
     <div class="field">
         <label>Install from</label>
         <select name="source">
-            <option value="apt" {{ 'selected' if entry and entry.source == 'apt' }}>apt</option>
-            <option value="flatpak" {{ 'selected' if entry and entry.source == 'flatpak' }}>flatpak</option>
+            <option value="apt" {{ 'selected' if entry and entry.source == 'apt' }}>apt — from a repository</option>
+            <option value="flatpak" {{ 'selected' if entry and entry.source == 'flatpak' }}>flatpak — from a remote</option>
+            <option value="bundle" {{ 'selected' if entry and entry.source == 'bundle' }}>upload — a .deb or .flatpak you provide</option>
         </select>
     </div>
     <div class="field">
         <label>Package name or flatpak reference</label>
         <input type="text" name="reference"
                value="{{ entry.reference if entry else '' }}" placeholder="firefox-esr">
+        <p class="muted" style="font-size:12px;margin:6px 0 0">
+            For an upload this is still the package name inside the file — it is
+            how a machine knows whether the application is already installed.
+        </p>
     </div>
 </div>
 

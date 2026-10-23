@@ -95,6 +95,47 @@ class ApplicationTests(unittest.TestCase):
         self.assertIn("No applications", policy.application_summary(compiled))
 
 
+class CommandTests(unittest.TestCase):
+    """The allowlist is the whole of what a user can do as root, so it is
+    worth pinning that it parses the way an administrator expects."""
+
+    def test_name_command_and_description(self):
+        commands = policy.commands_from_text(
+            "restart-printing = systemctl restart cups  # Restart printing"
+        )
+        self.assertEqual(len(commands), 1)
+        self.assertEqual(commands[0]["name"], "restart-printing")
+        self.assertEqual(commands[0]["argv"], ["systemctl", "restart", "cups"])
+        self.assertEqual(commands[0]["description"], "Restart printing")
+
+    def test_commands_are_argument_lists_not_shell_strings(self):
+        commands = policy.commands_from_text("logs = journalctl --since -1h")
+        self.assertIsInstance(commands[0]["argv"], list)
+        self.assertEqual(commands[0]["argv"], ["journalctl", "--since", "-1h"])
+
+    def test_quoted_arguments_survive(self):
+        commands = policy.commands_from_text("note = logger 'disk check run'")
+        self.assertEqual(commands[0]["argv"], ["logger", "disk check run"])
+
+    def test_malformed_lines_are_dropped_not_raised(self):
+        commands = policy.commands_from_text(
+            "good = true\nno equals here\n# a comment\n\nbad = 'unclosed"
+        )
+        self.assertEqual([c["name"] for c in commands], ["good"])
+
+    def test_no_commands_by_default(self):
+        compiled = policy.compile_policy("Default", 1, policy.default_policy())
+        self.assertEqual(compiled["commands"], [])
+        self.assertIn("No elevated commands", policy.command_summary(compiled))
+
+    def test_round_trip_through_the_textarea(self):
+        text = "restart-printing = systemctl restart cups  # Restart the print service"
+        commands = policy.commands_from_text(text)
+        self.assertEqual(
+            policy.commands_from_text(policy.commands_to_text(commands)), commands
+        )
+
+
 class CatalogueTests(unittest.TestCase):
     def test_seed_entries_are_complete(self):
         from app import catalogue

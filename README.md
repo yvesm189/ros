@@ -34,6 +34,11 @@ machine, change its wallpaper, dock position and accent colour from a browser,
 and watch the change land — but it is version 0.1.0 and nothing about it is
 settled.
 
+Users have no administrative rights. Software is installed through **Isoko**,
+the ROS Store, from a catalogue the organisation curates — and through nothing
+else. Anything a user genuinely needs to run as root is approved by name in the
+console. See [docs/lockdown.md](docs/lockdown.md).
+
 ROS ships no third-party browser or office suite. It ships a **catalogue** of
 ROS applications built on open source upstreams — Urubuga the browser,
 Inyandiko for documents, Imibare for spreadsheets, Imurika for slides,
@@ -170,6 +175,7 @@ thing.
 | [docs/building.md](docs/building.md) | Building packages and ISOs, and what to do when a build breaks |
 | [docs/branding.md](docs/branding.md) | Customising GNOME: typeface, colours, wallpaper, dock, splash, login screen |
 | [docs/applications.md](docs/applications.md) | The application catalogue, the store, and how a console hands applications to machines |
+| [docs/lockdown.md](docs/lockdown.md) | Why the store is the only way to install software, and how commands are approved |
 | [docs/management.md](docs/management.md) | Running the console, enrolling machines, writing policy |
 | [docs/agent-protocol.md](docs/agent-protocol.md) | The agent/console HTTP contract |
 | [docs/roadmap.md](docs/roadmap.md) | What is next, and what is deliberately not being built yet |

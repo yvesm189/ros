@@ -53,6 +53,9 @@ CREATE TABLE IF NOT EXISTS applications (
     reference   TEXT NOT NULL DEFAULT '',
     desktop_id  TEXT NOT NULL DEFAULT '',
     icon        TEXT NOT NULL DEFAULT 'application-x-executable-symbolic',
+    bundle_filename TEXT NOT NULL DEFAULT '',
+    bundle_sha256   TEXT NOT NULL DEFAULT '',
+    bundle_size     INTEGER NOT NULL DEFAULT 0,
     published   INTEGER NOT NULL DEFAULT 1,
     created_at  INTEGER NOT NULL,
     updated_at  INTEGER NOT NULL
@@ -82,6 +85,23 @@ CREATE INDEX IF NOT EXISTS idx_devices_group ON devices(group_id);
 """
 
 
+def migrate(conn: sqlite3.Connection) -> None:
+    """Add columns that a database created by an older version is missing.
+
+    SQLite has no `ADD COLUMN IF NOT EXISTS`, and an upgrade must not drop a
+    console's catalogue, so the existing columns are read and the missing ones
+    added one at a time.
+    """
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(applications)")}
+    for column, definition in (
+        ("bundle_filename", "TEXT NOT NULL DEFAULT ''"),
+        ("bundle_sha256", "TEXT NOT NULL DEFAULT ''"),
+        ("bundle_size", "INTEGER NOT NULL DEFAULT 0"),
+    ):
+        if column not in existing:
+            conn.execute("ALTER TABLE applications ADD COLUMN %s %s" % (column, definition))
+
+
 def connect() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -94,6 +114,7 @@ def init_db(default_policy: Dict[str, Any], catalogue: Optional[List[Dict[str, A
     os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
     with connect() as conn:
         conn.executescript(SCHEMA)
+        migrate(conn)
         existing = conn.execute("SELECT COUNT(*) AS n FROM groups").fetchone()["n"]
         if not existing:
             now = int(time.time())

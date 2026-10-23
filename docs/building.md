@@ -19,7 +19,7 @@ they are missing and re-run themselves inside a Debian container.
 make packages          # → out/packages/*.deb
 ```
 
-Six packages come out:
+Seven packages come out:
 
 | Package | Contents |
 |---|---|
@@ -27,6 +27,7 @@ Six packages come out:
 | `ros-fonts` | Funnel Display and Space Grotesk, and the fontconfig rules that make them the system font |
 | `ros-agent` | The management agent, its systemd timer, `/etc/ros/agent.conf` |
 | `ros-store` | Isoko, the ROS Store, and its polkit action |
+| `ros-lockdown` | The polkit rules that make the store the only way to install software, and `ros-run` |
 | `ros-app-defaults` | Font and privacy defaults for catalogue applications |
 | `ros-desktop-base` | Metapackage: GNOME + the two above |
 

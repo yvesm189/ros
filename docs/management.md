@@ -80,6 +80,7 @@ The editor covers:
 | Dock and shell | dock position, size, auto-hide, pinned applications, enabled extensions |
 | Session | screen lock, blank-screen delay |
 | Applications | which catalogue applications machines in the group install |
+| Elevated commands | the `ros-run` names users on these machines may run as root |
 | Advanced | locked keys, and raw dconf for anything the form does not cover |
 
 Below the form, the console prints **the exact file the agent will write**. That
@@ -98,6 +99,20 @@ and a destructive one; a sync timer is the wrong thing to be making it.
 
 The catalogue itself is edited under **Applications**. See
 [applications.md](applications.md).
+
+### Elevated commands
+
+Users on a ROS workstation have no administrative rights. This box is the
+exception list, one per line:
+
+```
+restart-printing = systemctl restart cups   # Restart the print service
+```
+
+Each line becomes a `ros-run <name>` the user can run as root, and nothing else
+can be run that way. Commands are stored as argument lists rather than shell
+strings and take no user input, so an approved command cannot be turned into a
+different one. See [lockdown.md](lockdown.md).
 
 ### Raw dconf
 

@@ -24,7 +24,13 @@
                 </td>
                 <td class="muted">{{ app.category }}</td>
                 <td class="muted">{{ app.upstream or '—' }}</td>
-                <td class="mono muted">{{ app.source }}:{{ app.reference }}</td>
+                <td class="mono muted">
+                    {{ app.source }}:{{ app.reference }}
+                    {% if app.bundle_filename %}
+                        <div style="font-size:12px">{{ app.bundle_filename }}
+                            ({{ (app.bundle_size / 1024 / 1024) | round(1) }} MB)</div>
+                    {% endif %}
+                </td>
                 <td>{{ app.group_count }}</td>
                 <td class="right nowrap">
                     <a class="btn ghost small" href="#edit-{{ app.id }}">Edit</a>
@@ -58,6 +64,24 @@
         </div>
         <div class="actions"><button class="btn">Save</button></div>
     </form>
+    <form method="post" action="/applications/{{ app.id }}/bundle"
+          enctype="multipart/form-data" style="margin-top:14px">
+        <div class="field" style="margin-bottom:8px">
+            <label for="bundle-{{ app.id }}">
+                Upload a package — a <code>.deb</code> or <code>.flatpak</code>.
+                Uploading one switches this application to the upload source.
+            </label>
+            <input type="file" id="bundle-{{ app.id }}" name="bundle"
+                   accept=".deb,.flatpak" required>
+        </div>
+        {% if app.bundle_sha256 %}
+        <p class="muted mono" style="font-size:12px;margin:0 0 8px">
+            current: {{ app.bundle_filename }} · sha256 {{ app.bundle_sha256[:16] }}…
+        </p>
+        {% endif %}
+        <button class="btn ghost small">Upload</button>
+    </form>
+
     <form method="post" action="/applications/{{ app.id }}/delete" style="margin-top:10px"
           onsubmit="return confirm('Remove {{ app.name }} from the catalogue? Policies that install it will stop doing so.')">
         <button class="btn danger small">Remove from catalogue</button>

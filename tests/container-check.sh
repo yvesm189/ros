@@ -100,6 +100,30 @@ assert not agent.is_installed({'source': 'apt', 'reference': 'no-such-package'})
 print('   install detection works')
 "
 
+echo ">> software installation is locked down"
+test -f /etc/polkit-1/rules.d/50-ros-lockdown.rules
+test -x /usr/bin/ros-run
+getent group ros-users >/dev/null || { echo "ros-users group missing" >&2; exit 1; }
+getent group ros-admins >/dev/null || { echo "ros-admins group missing" >&2; exit 1; }
+for blocked in "org.freedesktop.packagekit." "org.debian.apt." "org.freedesktop.Flatpak."; do
+    grep -q "${blocked}" /etc/polkit-1/rules.d/50-ros-lockdown.rules \
+        || { echo "polkit rule does not cover ${blocked}" >&2; exit 1; }
+done
+echo "   polkit rules, ros-run, and the ros-users / ros-admins groups"
+
+echo ">> the agent only runs commands the console approved"
+python3 -c "
+import os, sys, tempfile
+os.environ['ROS_COMMANDS'] = os.path.join(tempfile.mkdtemp(), 'commands.json')
+sys.path.insert(0, '/usr/lib/ros-agent')
+import agent
+agent.apply_commands({'name': 'check', 'revision': 1, 'commands': [
+    {'name': 'approved', 'argv': ['true'], 'description': 'allowed'}]})
+names = [c['name'] for c in agent.read_commands()]
+assert names == ['approved'], names
+print('   approved list is %s' % names)
+"
+
 echo ">> agent reports its state"
 ros-agent status >/dev/null
 echo

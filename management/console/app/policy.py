@@ -9,6 +9,7 @@ not cover can still be expressed as raw dconf in `extra_dconf`.
 from __future__ import annotations
 
 import json
+import shlex
 from typing import Any, Dict, List, Optional
 
 # GNOME only accepts these accent names; an arbitrary hex value is not valid
@@ -52,6 +53,11 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
 # somebody makes in the console rather than something an image assumed.
 DEFAULT_APPLICATIONS: List[str] = []
 
+# Commands an unprivileged user may run with elevation, as ros-run names. The
+# default is none: a ROS workstation hands out no administrative capability
+# until somebody writes down which one and why.
+DEFAULT_COMMANDS: List[Dict[str, Any]] = []
+
 DEFAULT_LOCKS: List[str] = [
     "/org/gnome/desktop/background/picture-uri",
     "/org/gnome/desktop/background/picture-uri-dark",
@@ -65,6 +71,7 @@ def default_policy() -> Dict[str, Any]:
         "extra_dconf": {},
         "locks": list(DEFAULT_LOCKS),
         "applications": list(DEFAULT_APPLICATIONS),
+        "commands": list(DEFAULT_COMMANDS),
     }
 
 
@@ -156,6 +163,7 @@ def compile_policy(
         "dconf": compile_dconf(policy),
         "locks": policy.get("locks") or [],
         "applications": applications or [],
+        "commands": policy.get("commands") or [],
     }
 
 
@@ -168,6 +176,51 @@ def _lines(value: str) -> List[str]:
         return []
     raw = value.replace(",", "\n").splitlines()
     return [item.strip() for item in raw if item.strip()]
+
+
+def commands_from_text(text: str) -> List[Dict[str, Any]]:
+    """Parse the command allowlist from the console's textarea.
+
+    One command per line: `name = command line # description`. A line that does
+    not parse is dropped rather than raising - this list ends up on every
+    workstation in the group, and a half-written line should cost that line,
+    not the save.
+    """
+    commands: List[Dict[str, Any]] = []
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        name, _, rest = line.partition("=")
+        name = name.strip()
+        description = ""
+        if "#" in rest:
+            rest, _, description = rest.partition("#")
+
+        try:
+            argv = shlex.split(rest.strip())
+        except ValueError:
+            continue
+
+        if not name or not argv:
+            continue
+
+        commands.append(
+            {"name": name, "argv": argv, "description": description.strip()}
+        )
+    return commands
+
+
+def commands_to_text(commands: List[Dict[str, Any]]) -> str:
+    lines = []
+    for command in commands or []:
+        line = "%s = %s" % (command.get("name", ""),
+                            " ".join(command.get("argv") or []))
+        if command.get("description"):
+            line += "  # %s" % command["description"]
+        lines.append(line)
+    return "\n".join(lines)
 
 
 def policy_from_form(form: Dict[str, Any]) -> Dict[str, Any]:
@@ -230,6 +283,7 @@ def policy_from_form(form: Dict[str, Any]) -> Dict[str, Any]:
         "extra_dconf": extra,
         "locks": _lines(str(form.get("locks", ""))),
         "applications": applications,
+        "commands": commands_from_text(str(form.get("commands", ""))),
     }
 
 
@@ -241,6 +295,20 @@ def application_summary(compiled: Dict[str, Any]) -> str:
     return "\n".join(
         "%-14s %-6s %s" % (app["name"], app["source"], app["reference"])
         for app in apps
+    )
+
+
+def command_summary(compiled: Dict[str, Any]) -> str:
+    """What an unprivileged user on this policy will be able to run as root."""
+    commands = compiled.get("commands") or []
+    if not commands:
+        return ("# No elevated commands are approved for this policy.\n"
+                "# Users have no way to run anything as root on these machines.")
+    return "\n".join(
+        "ros-run %-16s -> %s%s"
+        % (c["name"], " ".join(c["argv"]),
+           ("    # " + c["description"]) if c.get("description") else "")
+        for c in commands
     )
 
 

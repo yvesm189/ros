@@ -52,13 +52,34 @@ deliberately removed.
 | Identifier | Stable lowercase slug — `urubuga`. Policies and the store refer to this. |
 | Tagline, description, category | The store listing |
 | Built on | The open source upstream, shown so nobody has to guess |
-| Install from | `apt` or `flatpak` |
-| Reference | Package name or flatpak ref |
+| Install from | `apt`, `flatpak`, or **upload** |
+| Reference | Package name or flatpak ref. For an upload this is still the package name *inside* the file — it is how a machine knows whether the application is already installed. |
 | Desktop file | Needed to pin it to the dock and to offer **Open** in the store |
 | Icon | An icon name from the theme |
 
 Unpublishing an entry hides it from the store without deleting it or disturbing
 policies.
+
+### Uploading a package
+
+A catalogue entry can carry a **`.deb` or `.flatpak` you upload** instead of a
+reference into somebody else's repository. That is the right answer for an
+application you build yourself, a vendor package that is not in any repository,
+or anything you want to pin to an exact artifact.
+
+Upload it on the application's card. The console stores the file, records its
+size and **SHA-256**, and switches the entry to the upload source. Machines
+download it from the console over an authenticated request — unlike the
+catalogue, which is a shop window, this is the software itself — verify the
+checksum, and refuse to install anything that does not match what was
+published.
+
+`.deb` uploads are installed with `apt-get install ./file.deb` rather than
+`dpkg -i`, so dependencies are resolved rather than merely complained about.
+
+Repository sources are kept because they are the right answer for everything
+that *is* in a repository: security updates arrive without anybody re-uploading
+a file. Upload is a source type, not a replacement.
 
 ## Giving applications to machines
 
@@ -72,6 +93,11 @@ somebody is using is a separate, destructive decision, and a sync timer is the
 wrong thing to be making it.
 
 ## The ROS Store
+
+Isoko is not one way to install software on ROS. It is **the** way: users have
+no administrative rights, PackageKit and Flatpak's own authorisations are
+refused, and GNOME Software is not shipped at all. See
+[lockdown.md](lockdown.md).
 
 `Isoko` is a GTK4 application on the workstation. It reads the catalogue the
 agent cached at `/var/cache/ros-agent/catalogue.json`, so it works on a flaky
@@ -91,6 +117,10 @@ ros-agent catalogue           # the catalogue, with install state, as JSON
 ros-agent app install urubuga
 ros-agent app remove urubuga
 ```
+
+Installing needs no password for anybody who uses the machine; installing
+anything that is *not* in the catalogue is impossible, because the agent takes
+a slug rather than a package name.
 
 ## Making an upstream look like ROS
 

@@ -7,6 +7,23 @@ before 1.0 the minor number carries breaking changes.
 
 ### Added
 
+- **Software installation is locked down** (`ros-lockdown`). Isoko is the only
+  way software is installed on a ROS workstation: desktop accounts hold no
+  administrative rights, PackageKit, apt and Flatpak's own authorisations are
+  refused by polkit, and GNOME Software is no longer shipped. Installing from
+  the catalogue needs no password, because the agent accepts a catalogue slug
+  rather than a package name - the bound is on what can be installed, not on
+  who may ask.
+- **Approved commands.** A policy group lists `name = command line` entries
+  that become `ros-run <name>` on the workstation. Commands are stored as
+  argument lists and take no user input, so an approved command cannot be
+  turned into a different one, and nothing outside the list runs as root.
+- **Uploaded packages as a catalogue source.** An application can carry a
+  `.deb` or `.flatpak` uploaded to the console instead of a reference into
+  somebody else's repository. The console records the SHA-256, machines
+  download it over an authenticated request, and a download that does not match
+  what was published is never installed.
+
 - **An application catalogue and a store.** The console publishes a catalogue
   of ROS applications built on open source upstreams - Urubuga (browser),
   Inyandiko, Imibare and Imurika (documents, spreadsheets, slides), Umusomyi
@@ -25,6 +42,17 @@ before 1.0 the minor number carries breaking changes.
 - **A login screen in the desktop preview.** It now boots LightDM with a
   ROS-themed greeter and a real GNOME session behind it, instead of dropping
   straight into a shell nobody logged into.
+
+### Fixed
+
+- **Logging in no longer drops the VNC connection.** Debian 13 ships no
+  `gnome-xorg.desktop` - only Wayland sessions - so LightDM silently fell back
+  to `lightdm-xsession`, which exits immediately and takes the seat, and the
+  connection, with it. The preview now installs `gnome-session-xsession`.
+- The agent waits for the dpkg lock instead of failing on it, so a sync that
+  collides with unattended upgrades catches up rather than giving up.
+- A command approved on a machine that does not have the binary reports that in
+  those words rather than raising a traceback.
 
 ### Changed
 

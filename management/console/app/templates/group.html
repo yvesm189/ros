@@ -139,6 +139,25 @@
     </div>
 </div>
 
+<h2>Elevated commands</h2>
+<p class="muted" style="margin-top:-6px;font-size:14px">
+    Users on a ROS workstation have no administrative rights at all. This is the
+    exception list: each line becomes a <code>ros-run &lt;name&gt;</code> the user
+    can run as root, and nothing else can be run that way.
+</p>
+<div class="card">
+    <div class="field" style="margin-bottom:0">
+        <label for="commands">One per line: <code>name = command line  # description</code></label>
+        <textarea id="commands" name="commands" rows="6"
+                  placeholder="restart-printing = systemctl restart cups  # Restart the print service">{{ commands }}</textarea>
+        <p class="muted" style="font-size:13px">
+            The command is stored as an argument list, not as a shell string, and
+            the user supplies no part of it — so an approved command cannot be
+            turned into a different one.
+        </p>
+    </div>
+</div>
+
 <h2>Advanced</h2>
 <div class="grid two">
     <div class="card">
@@ -179,4 +198,7 @@
 
 <h2>Applications it will install</h2>
 <pre class="keyfile">{{ application_summary }}</pre>
+
+<h2>What users on these machines may run as root</h2>
+<pre class="keyfile">{{ command_summary }}</pre>
 {% endblock %}
