@@ -19,11 +19,12 @@ they are missing and re-run themselves inside a Debian container.
 make packages          # → out/packages/*.deb
 ```
 
-Three packages come out:
+Four packages come out:
 
 | Package | Contents |
 |---|---|
-| `ros-branding` | Wallpapers, logo, splash, dconf defaults and locks, browser policy |
+| `ros-branding` | Wallpapers, logo, splash, dconf defaults and locks |
+| `ros-fonts` | Funnel Display and Space Grotesk, and the fontconfig rules that make them the system font |
 | `ros-agent` | The management agent, its systemd timer, `/etc/ros/agent.conf` |
 | `ros-desktop-base` | Metapackage: GNOME + the two above |
 
@@ -78,7 +79,7 @@ Expect roughly 2.5–3.5 GB of ISO and about 10 GB of scratch space.
 Clearing `/etc/machine-id` matters: it is regenerated on first boot, which is
 what makes each installed machine enroll as its own device.
 
-## Desktop preview in a browser
+## Desktop preview over VNC
 
 The fastest way to see what the branding and the policy actually do:
 
@@ -87,28 +88,36 @@ make desktop                      # image defaults only
 make desktop KEY=<enrollment key> # enrolled in the local console
 ```
 
-Then open **http://localhost:6080/vnc.html?autoconnect=true&resize=scale**.
+Then connect any VNC client to **127.0.0.1:5900**:
+
+```bash
+vncviewer 127.0.0.1:5900          # TigerVNC
+open vnc://127.0.0.1:5900         # macOS Screen Sharing
+```
 
 It builds a container running the real GNOME session, the real `ros-branding`
-package and the real `ros-agent`, rendered by Xvfb and served over noVNC. The
+and `ros-fonts` packages and the real `ros-agent`, on a TigerVNC server. The
 agent runs on its actual systemd timer, shortened to twenty seconds so a policy
 change can be watched landing.
 
-Two things about that container are worth knowing:
+Three things about that container are worth knowing:
 
 - **systemd runs as PID 1**, which is why it needs `--privileged`. GNOME Shell
   48 asks `org.freedesktop.login1` about the session before it will draw
   anything, and there is no way to opt out. elogind would be the lighter
   answer, but it conflicts with systemd on Debian 13.
-- **It is a development tool.** A privileged container with a passwordless VNC
-  server on it should never be reachable from anything but your own machine.
+- **Xvnc is the X server and the VNC server in one process**, so there is no
+  Xvfb to keep in sync with a separate x11vnc.
+- **It is a development tool.** The port is published on `127.0.0.1` only and
+  there is no password unless you pass one. Keep both of those true, or pass
+  `--password`.
 
 Useful knobs:
 
 ```bash
 ./scripts/preview-desktop.sh --geometry 1920x1080
-./scripts/preview-desktop.sh --port 6081 --unmanaged
-docker logs -f ros-desktop
+./scripts/preview-desktop.sh --password secret
+./scripts/preview-desktop.sh --port 5901 --unmanaged
 docker exec ros-desktop journalctl -u ros-preview.service
 docker exec ros-desktop ros-agent sync --force
 ```
@@ -151,8 +160,9 @@ make lint      # shell and Python syntax
 ```
 
 `make check` is the one that matters before a release: it proves the dconf
-databases compile, the ROS defaults are readable through the profile, and a
-policy from a server overrides them.
+databases compile, the ROS defaults are readable through the profile, the brand
+font resolves as the system `sans-serif`, no third-party application is pinned,
+and a policy from a server overrides the defaults.
 
 ## Troubleshooting
 

@@ -34,6 +34,11 @@ machine, change its wallpaper, dock position and accent colour from a browser,
 and watch the change land — but it is version 0.1.0 and nothing about it is
 settled.
 
+ROS ships no third-party browser or office suite. The basic application set is
+being built as ROS applications on open source upstreams, carrying the ROS
+interface; until those exist the image ships the GNOME system tools and nothing
+else. See [docs/applications.md](docs/applications.md).
+
 ## How the pieces fit
 
 ```
@@ -77,7 +82,13 @@ make desktop
 ```
 
 That builds a container running the real GNOME session with the real branding
-package and opens it at **http://localhost:6080/vnc.html?autoconnect=true&resize=scale**.
+and font packages, on a TigerVNC server. Connect any VNC client:
+
+```bash
+vncviewer 127.0.0.1:5900          # TigerVNC
+open vnc://127.0.0.1:5900         # macOS Screen Sharing
+```
+
 About a minute, rather than the hours an ISO takes. It needs `--privileged`,
 because GNOME Shell requires logind and that means systemd as PID 1 inside the
 container.
@@ -100,7 +111,7 @@ make desktop KEY=<the enrollment key>
 ```
 
 The same desktop, now enrolled. Change the accent colour, the dock position or
-the wallpaper in **Policies → Default**, save, and watch the browser tab change
+the wallpaper in **Policies → Default**, save, and watch the VNC session change
 within twenty seconds.
 
 **4. Or manage a headless workstation instead**
@@ -111,6 +122,8 @@ same agent, the same policy — without building an image:
 ```bash
 make agent-dev KEY=<the enrollment key>
 ```
+
+Inside the shell it drops you into:
 
 ```bash
 ros-agent sync
@@ -134,7 +147,9 @@ thing.
 | Path | What it is |
 |---|---|
 | `base/live-build/` | The image: package lists, chroot hooks, ISO configuration |
+| `branding/fonts/` | The brand typefaces, the one copy everything else stages from |
 | `packages/ros-branding/` | Wallpapers, logo, boot splash, GTK accent, the default dconf policy |
+| `packages/ros-fonts/` | Funnel Display and Space Grotesk, and the fontconfig rules behind them |
 | `packages/ros-agent/` | The management agent and its systemd timer |
 | `packages/ros-desktop-base/` | Metapackage: "this machine is a ROS workstation" |
 | `management/console/` | The console — FastAPI, SQLite, server-rendered UI |
@@ -149,7 +164,8 @@ thing.
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Why it is built this way, and what each decision cost |
 | [docs/building.md](docs/building.md) | Building packages and ISOs, and what to do when a build breaks |
-| [docs/branding.md](docs/branding.md) | Customising GNOME: colours, wallpaper, dock, splash, login screen |
+| [docs/branding.md](docs/branding.md) | Customising GNOME: typeface, colours, wallpaper, dock, splash, login screen |
+| [docs/applications.md](docs/applications.md) | Why ROS ships no third-party browser or office suite, and what replaces them |
 | [docs/management.md](docs/management.md) | Running the console, enrolling machines, writing policy |
 | [docs/agent-protocol.md](docs/agent-protocol.md) | The agent/console HTTP contract |
 | [docs/roadmap.md](docs/roadmap.md) | What is next, and what is deliberately not being built yet |

@@ -1,9 +1,9 @@
 # A ROS desktop you can open in a browser.
 #
-# This runs the real GNOME session with the real ros-branding package and the
-# real management agent, rendered by Xvfb and served over noVNC. It is not how
-# ROS is deployed - that is an ISO - but it shows exactly what the branding and
-# the policy do, in about a minute instead of a multi-hour image build.
+# This runs the real GNOME session with the real ROS packages on a TigerVNC
+# server, so any VNC client can open it. It is not how ROS is deployed - that
+# is an ISO - but it shows exactly what the branding and the policy do, in
+# about a minute instead of a multi-hour image build.
 #
 # systemd runs as PID 1 because GNOME Shell 48 requires logind: it asks
 # org.freedesktop.login1 about the session before it will draw anything, and
@@ -27,23 +27,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gnome-shell-extension-dashtodock \
         gnome-shell-extension-appindicator \
         nautilus \
-        firefox-esr \
         gnome-console \
         gnome-text-editor \
         gnome-system-monitor \
         adwaita-icon-theme \
-        fonts-inter \
         fonts-cantarell \
         fonts-noto-core \
         dconf-cli \
         dconf-gsettings-backend \
+        fontconfig \
         librsvg2-common \
         libgl1-mesa-dri \
-        xvfb \
+        tigervnc-standalone-server \
+        tigervnc-common \
         xdotool \
-        x11vnc \
-        novnc \
-        websockify \
         dbus-x11 \
         xdg-user-dirs \
         locales \
@@ -62,7 +59,7 @@ RUN systemctl mask \
         systemd-networkd-wait-online.service
 
 # The ROS packages, exactly as a workstation gets them.
-COPY out/packages/ros-branding_*.deb out/packages/ros-agent_*.deb /tmp/ros/
+COPY out/packages/ros-fonts_*.deb out/packages/ros-branding_*.deb out/packages/ros-agent_*.deb /tmp/ros/
 RUN apt-get update \
     && apt-get install -y --no-install-recommends /tmp/ros/*.deb \
     && rm -rf /tmp/ros /var/lib/apt/lists/*
@@ -78,6 +75,6 @@ COPY preview/desktop/ros-agent-preview.conf \
 RUN chmod +x /usr/local/bin/ros-desktop-preview \
     && systemctl enable ros-preview.service
 
-EXPOSE 6080
+EXPOSE 5900
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]

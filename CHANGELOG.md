@@ -3,6 +3,25 @@
 Notable changes to ROS. Versions follow [semantic versioning](https://semver.org);
 before 1.0 the minor number carries breaking changes.
 
+## Unreleased
+
+### Changed
+
+- **The system font is now Funnel Display**, matching the RHost console at
+  rhost.rw. It ships in a new `ros-fonts` package together with Space Grotesk
+  for display text, and a fontconfig rule makes it the generic `sans-serif` -
+  so it is the system font, not just the GNOME interface font. Noto and DejaVu
+  stay behind it for the coverage Funnel Display does not have.
+- **Removed Firefox, LibreOffice and Thunderbird from the image**, along with
+  their policy files and dock entries. The basic application set is being built
+  as ROS applications on open source upstreams; see `docs/applications.md`.
+  Until those land the image ships the GNOME system tools only.
+- **The desktop preview serves plain VNC on :5900** instead of noVNC over HTTP.
+  Xvnc replaces the Xvfb/x11vnc/websockify stack, so there is one process
+  instead of three, and any VNC client can connect.
+- The brand typefaces live once, in `branding/fonts/`. The package build and
+  the console build both stage them from there rather than keeping copies.
+
 ## 0.1.0 — 2026-10-23
 
 First working version. The whole chain runs: build an image, enroll a machine,

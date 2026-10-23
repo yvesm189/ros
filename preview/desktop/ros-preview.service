@@ -1,5 +1,5 @@
 [Unit]
-Description=ROS desktop preview (Xvfb, GNOME Shell, noVNC)
+Description=ROS desktop preview (TigerVNC, GNOME Shell)
 After=systemd-logind.service dbus.service network-online.target
 Wants=systemd-logind.service
 

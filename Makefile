@@ -31,7 +31,7 @@ iso-arm64: ## Build an arm64 ISO - native speed on Apple silicon
 preview: ## Boot the newest ISO in QEMU
 	@./scripts/preview.sh
 
-desktop: ## Open a ROS desktop in your browser on :6080 (KEY=... to have it managed)
+desktop: ## Run a ROS desktop on VNC :5900 (KEY=... to have it managed)
 	@./scripts/preview-desktop.sh $(if $(KEY),--key $(KEY))
 
 console: ## Run the management console in Docker on :8000

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Start a ROS desktop and serve it over noVNC.
+# Start a ROS desktop on a TigerVNC server.
 #
 # Runs as root under systemd so that ros-agent can write /etc/dconf; the GNOME
 # session itself runs as the unprivileged `ros` user.
@@ -14,7 +14,7 @@ load_container_env() {
     [ -r /proc/1/environ ] || return 0
     while IFS='=' read -r -d '' name value; do
         case "${name}" in
-            ROS_SERVER|ROS_ENROLLMENT_KEY|GEOMETRY)
+            ROS_SERVER|ROS_ENROLLMENT_KEY|GEOMETRY|VNC_PASSWORD)
                 [ -z "${!name:-}" ] && export "${name}=${value}"
                 ;;
         esac
@@ -40,8 +40,30 @@ else
 fi
 
 # ------------------------------------------------------------------ display --
-log "starting Xvfb at ${GEOMETRY}"
-Xvfb :0 -screen 0 "${GEOMETRY}x24" -nolisten tcp -noreset &
+# Xvnc is the X server and the VNC server in one process, so there is no Xvfb
+# to pair with a separate x11vnc and nothing to keep in sync between them.
+VNC_ARGS=(
+    -geometry "${GEOMETRY}"
+    -depth 24
+    -rfbport 5900
+    -AlwaysShared
+    -desktop "ROS"
+)
+
+if [ -n "${VNC_PASSWORD:-}" ]; then
+    install -d -m 700 /root/.vnc
+    printf '%s\n' "${VNC_PASSWORD}" | vncpasswd -f > /root/.vnc/passwd
+    chmod 600 /root/.vnc/passwd
+    VNC_ARGS+=(-SecurityTypes VncAuth -PasswordFile /root/.vnc/passwd)
+    log "starting Xvnc at ${GEOMETRY} on :5900 (password authentication)"
+else
+    # No password by default. The launcher publishes the port on 127.0.0.1
+    # only; see scripts/preview-desktop.sh before changing that.
+    VNC_ARGS+=(-SecurityTypes None)
+    log "starting Xvnc at ${GEOMETRY} on :5900 (no authentication)"
+fi
+
+Xvnc :0 "${VNC_ARGS[@]}" >/dev/null 2>&1 &
 
 # Wait for the X socket rather than for a client tool: xdpyinfo lives in
 # x11-utils, which this image has no other reason to carry.
@@ -49,11 +71,7 @@ for _ in $(seq 1 60); do
     [ -S /tmp/.X11-unix/X0 ] && break
     sleep 0.25
 done
-[ -S /tmp/.X11-unix/X0 ] || { log "Xvfb did not start"; exit 1; }
-
-log "starting VNC and noVNC on 6080"
-x11vnc -display :0 -forever -shared -nopw -quiet -bg -rfbport 5900 -xkb
-websockify --web=/usr/share/novnc 6080 localhost:5900 >/dev/null 2>&1 &
+[ -S /tmp/.X11-unix/X0 ] || { log "Xvnc did not start"; exit 1; }
 
 # ------------------------------------------------------------------ session --
 # Without gnome-session, the shell comes up sitting in the Activities overview

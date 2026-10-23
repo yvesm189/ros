@@ -1,34 +1,43 @@
 #!/usr/bin/env bash
-# Open a ROS desktop in a browser.
+# Run a ROS desktop you can open with a VNC client.
 #
 # Builds and runs a container with the real GNOME session, the real branding
-# package and the real management agent, served over noVNC on :6080. Point it
-# at a console and policy changes land on the desktop while you watch.
+# and font packages and the real management agent, on a TigerVNC server. Point
+# it at a console and policy changes land on the desktop while you watch.
 #
-#   ./scripts/preview-desktop.sh                      # image defaults only
-#   ./scripts/preview-desktop.sh --key <key>          # managed by the local console
+#   ./scripts/preview-desktop.sh                       # image defaults only
+#   ./scripts/preview-desktop.sh --key <key>           # managed by the local console
+#   ./scripts/preview-desktop.sh --password secret     # require a VNC password
+#
+# Connect with any VNC client:
+#
+#   vncviewer 127.0.0.1:5900          # TigerVNC
+#   open vnc://127.0.0.1:5900         # macOS Screen Sharing
 #
 # systemd runs as PID 1 inside the container because GNOME Shell requires
-# logind, which is why this needs --privileged. It is a development tool; do
-# not run it on anything exposed.
+# logind, which is why this needs --privileged. It is a development tool: the
+# port is published on 127.0.0.1 only, and it should stay that way.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="$(cat "${ROOT}/VERSION")"
 NAME="${ROS_PREVIEW_NAME:-ros-desktop}"
-PORT="${ROS_PREVIEW_PORT:-6080}"
+PORT="${ROS_PREVIEW_PORT:-5900}"
+BIND="${ROS_PREVIEW_BIND:-127.0.0.1}"
 GEOMETRY="${GEOMETRY:-1600x900}"
 SERVER="${ROS_SERVER:-http://host.docker.internal:8000}"
 KEY="${ROS_ENROLLMENT_KEY:-}"
+PASSWORD="${VNC_PASSWORD:-}"
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --key) KEY="$2"; shift 2 ;;
         --server) SERVER="$2"; shift 2 ;;
         --port) PORT="$2"; shift 2 ;;
+        --password) PASSWORD="$2"; shift 2 ;;
         --geometry) GEOMETRY="$2"; shift 2 ;;
         --unmanaged) KEY=""; SERVER=""; shift ;;
-        -h|--help) sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown argument: $1" >&2; exit 1 ;;
     esac
 done
@@ -52,21 +61,31 @@ docker run -d --name "${NAME}" \
     --tmpfs /run --tmpfs /run/lock \
     --add-host=host.docker.internal:host-gateway \
     --shm-size=512m \
-    -p "${PORT}:6080" \
+    -p "${BIND}:${PORT}:5900" \
     -e GEOMETRY="${GEOMETRY}" \
+    ${PASSWORD:+-e VNC_PASSWORD="${PASSWORD}"} \
     ${SERVER:+-e ROS_SERVER="${SERVER}"} \
     ${KEY:+-e ROS_ENROLLMENT_KEY="${KEY}"} \
     "ros-desktop-preview:${VERSION}" >/dev/null
 
 echo -n ">> waiting for the desktop"
 for _ in $(seq 1 90); do
-    if curl -fsS -o /dev/null "http://127.0.0.1:${PORT}/vnc.html" 2>/dev/null; then
+    # The VNC server is listening once this connects; bash's /dev/tcp avoids
+    # needing nc in the host environment.
+    if (exec 3<>"/dev/tcp/${BIND}/${PORT}") 2>/dev/null; then
+        exec 3>&- 2>/dev/null || true
+        # Xvnc accepts connections before GNOME has drawn; give the session a
+        # moment so the first thing connecting clients see is the desktop.
+        sleep 12
         echo
         echo
-        echo "   ROS desktop:  http://localhost:${PORT}/vnc.html?autoconnect=true&resize=scale"
+        echo "   ROS desktop:  vnc://${BIND}:${PORT}"
+        echo "   TigerVNC:     vncviewer ${BIND}:${PORT}"
+        [ -n "${PASSWORD}" ] && echo "   password:     set via --password" \
+                             || echo "   password:     none (published on ${BIND} only)"
         [ -n "${KEY}" ] && echo "   managed by:   ${SERVER}"
         echo
-        echo "   logs:  docker logs -f ${NAME}"
+        echo "   logs:  docker exec ${NAME} journalctl -u ros-preview.service"
         echo "   stop:  docker rm -f ${NAME}"
         exit 0
     fi
@@ -76,5 +95,5 @@ done
 
 echo
 echo "the desktop did not come up; here is what it said:" >&2
-docker logs "${NAME}" 2>&1 | tail -30 >&2
+docker exec "${NAME}" journalctl -u ros-preview.service --no-pager 2>&1 | tail -30 >&2
 exit 1
