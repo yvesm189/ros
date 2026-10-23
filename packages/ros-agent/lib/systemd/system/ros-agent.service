@@ -1,0 +1,23 @@
+[Unit]
+Description=ROS management agent sync
+Documentation=https://github.com/yvesm189/ros
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ros-agent sync
+# The agent writes /etc/dconf/db and runs `dconf update`, so it needs root,
+# but nothing beyond that.
+User=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/ros-agent /etc/dconf
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

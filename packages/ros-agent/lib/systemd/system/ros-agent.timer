@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the ROS management agent periodically
+Documentation=https://github.com/yvesm189/ros
+
+[Timer]
+# Soon after boot, then every 15 minutes. The spread keeps a few hundred
+# machines from hitting the console in the same second after a power cut.
+OnBootSec=2min
+OnUnitActiveSec=15min
+RandomizedDelaySec=120
+Persistent=true
+
+[Install]
+WantedBy=timers.target

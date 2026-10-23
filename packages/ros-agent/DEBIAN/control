@@ -1,0 +1,15 @@
+Package: ros-agent
+Version: @VERSION@
+Section: admin
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.9), dconf-cli, systemd
+Maintainer: ROS Project <yvesm189@users.noreply.github.com>
+Homepage: https://github.com/yvesm189/ros
+Description: ROS management agent
+ Enrolls a ROS workstation with a ROS Console server, reports hardware and
+ operating system inventory on a timer, and applies the GNOME desktop policy
+ the server returns by writing a system dconf database.
+ .
+ The agent uses only the Python standard library and does nothing at all until
+ a server URL is configured, so it is safe to ship in an unmanaged image.

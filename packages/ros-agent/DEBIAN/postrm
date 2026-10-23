@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+    rm -rf /var/lib/ros-agent
+    rm -f /etc/dconf/db/ros.d/50-managed /etc/dconf/db/ros.d/locks/50-managed
+    command -v dconf >/dev/null 2>&1 && dconf update || true
+fi
+
+exit 0

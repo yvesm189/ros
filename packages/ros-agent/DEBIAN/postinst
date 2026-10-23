@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        mkdir -p /var/lib/ros-agent
+        chmod 0750 /var/lib/ros-agent
+
+        if [ -d /run/systemd/system ]; then
+            systemctl daemon-reload || true
+            systemctl enable ros-agent.timer || true
+            systemctl start ros-agent.timer || true
+        fi
+        ;;
+esac
+
+exit 0
